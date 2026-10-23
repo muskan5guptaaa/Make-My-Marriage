@@ -9,6 +9,7 @@ process.env.JWT_SECRET = 'test-secret';
 
 const { createApp } = await import('../src/app.js');
 const { sentEmails } = await import('../src/utils/email.js');
+const { WeddingMember } = await import('../src/models/WeddingMember.js');
 
 let mongo;
 let app;
@@ -170,5 +171,83 @@ describe('roles and removal', () => {
     const invite = (await as(aisha).post(base, { email: 'rekha@email.com' })).body.member;
     const res = await as(aisha).patch(`${base}/${invite._id}`, { role: 'owner' }).expect(409);
     assert.equal(res.body.error.code, 'invite_pending');
+  });
+});
+
+describe('invitation link (/join/<token>)', () => {
+  const tokenFrom = (email) => email.text.match(/\/join\/([A-Za-z0-9_-]+)/)[1];
+  const view = (token) => request(app).get(`/api/v1/member-invites/${token}`);
+
+  it('shows the couple, dates, functions, email, role and whether an account exists', async () => {
+    await as(aisha).post(`/weddings/${wedding._id}/functions`, { name: 'Sangeet', localDate: '2026-10-24', startTime: '19:00', venue: 'The Grand Lawns' });
+    const res = await as(aisha).post(base, { email: 'rekha@email.com' }).expect(201);
+    assert.match(res.body.inviteUrl, /\/join\/[A-Za-z0-9_-]{43}$/);
+    const token = tokenFrom(sentEmails[0]);
+    assert.ok(res.body.inviteUrl.endsWith(token));
+
+    const { body } = await view(token).expect(200); // no session needed
+    assert.equal(body.invite.status, 'pending');
+    assert.equal(body.invite.email, 'rekha@email.com');
+    assert.equal(body.invite.role, 'co-admin');
+    assert.equal(body.invite.invitedBy.name, 'Aisha Sharma');
+    assert.equal(body.invite.hasAccount, false);
+    assert.equal(body.invite.wedding.brideName, 'Aisha');
+    assert.deepEqual(body.invite.wedding.dateRange, { start: '2026-10-24', end: '2026-10-24' });
+    assert.deepEqual(body.invite.wedding.functions.map((f) => [f.name, f.startTime, f.venue]), [['Sangeet', '19:00', 'The Grand Lawns']]);
+
+    await signUp('Rekha Kapoor', 'rekha@email.com');
+    assert.equal((await view(token)).body.invite.hasAccount, true);
+  });
+
+  it('accepts only for the invited email, then shows accepted', async () => {
+    await as(aisha).post(base, { email: 'rekha@email.com' });
+    const token = tokenFrom(sentEmails[0]);
+    const karan = await signUp('Karan Shah', 'karan@email.com');
+    const wrong = await as(karan).post(`/member-invites/${token}/accept`).expect(403);
+    assert.equal(wrong.body.error.code, 'wrong_account');
+    await request(app).post(`/api/v1/member-invites/${token}/accept`).expect(401);
+
+    const rekha = await signUp('Rekha Kapoor', 'rekha@email.com');
+    const ok = await as(rekha).post(`/member-invites/${token}/accept`).expect(200);
+    assert.equal(ok.body.wedding.role, 'co-admin');
+    await as(rekha).get(`/weddings/${wedding._id}`).expect(200);
+    assert.equal((await view(token)).body.invite.status, 'accepted');
+    await as(rekha).post(`/member-invites/${token}/accept`).expect(200); // opening it again is fine
+  });
+
+  it('re-sending issues a new link and the old one stops working', async () => {
+    const invite = (await as(aisha).post(base, { email: 'rekha@email.com' })).body.member;
+    const first = tokenFrom(sentEmails[0]);
+    const res = await as(aisha).post(`${base}/${invite._id}/resend`).expect(200);
+    const second = tokenFrom(sentEmails[1]);
+    assert.notEqual(first, second);
+    assert.ok(res.body.inviteUrl.endsWith(second));
+    const old = await view(first).expect(404);
+    assert.equal(old.body.error.code, 'invite_link_invalid');
+    await view(second).expect(200);
+  });
+
+  it('expired links can be viewed but not accepted; cancelled and made-up links are invalid', async () => {
+    const invite = (await as(aisha).post(base, { email: 'rekha@email.com' })).body.member;
+    const token = tokenFrom(sentEmails[0]);
+    await WeddingMember.updateOne({ _id: invite._id }, { $set: { inviteExpiresAt: new Date(Date.now() - 1000) } });
+    assert.equal((await view(token)).body.invite.status, 'expired');
+    const rekha = await signUp('Rekha Kapoor', 'rekha@email.com');
+    const res = await as(rekha).post(`/member-invites/${token}/accept`).expect(410);
+    assert.equal(res.body.error.code, 'invite_expired');
+
+    await as(aisha).del(`${base}/${invite._id}`).expect(204);
+    await view(token).expect(404);
+    await view('not-a-real-token-at-all-xxxxxxxx').expect(404);
+    await view('short').expect(404);
+  });
+
+  it('only owners can re-send', async () => {
+    await as(aisha).post(base, { email: 'karan@email.com' });
+    await as(aisha).post(base, { email: 'rekha@email.com' });
+    const rekha = await signUp('Rekha Kapoor', 'rekha@email.com');
+    await as(rekha).post(`${base}/accept`).expect(200);
+    const karanInvite = (await as(aisha).get(base)).body.data.find((m) => m.email === 'karan@email.com');
+    await as(rekha).post(`${base}/${karanInvite._id}/resend`).expect(403);
   });
 });

@@ -221,3 +221,22 @@ describe('CSV import', () => {
     assert.match(res.body.error.message, /Name/);
   });
 });
+
+describe('bulk delete', () => {
+  it('deletes the chosen guests and their links, and ignores other weddings', async () => {
+    const a = (await post(G, { name: 'Muskan Gupta' })).body.guest;
+    const b = (await post(G, { name: 'Muskan Gupta' })).body.guest;
+    const keep = (await post(G, { name: 'Ayush' })).body.guest;
+    const other = (await post('/weddings', { brideName: 'Neha', groomName: 'Karan' })).body.wedding;
+    const theirs = (await post(`/weddings/${other._id}/guests`, { name: 'Not yours' })).body.guest;
+
+    const res = await post(`${G}/delete`, { ids: [a._id, b._id, theirs._id] }).expect(200);
+    assert.equal(res.body.deleted, 2);
+    assert.deepEqual((await get(G)).body.data.map((g) => g._id), [keep._id]);
+    assert.equal(await GuestLink.countDocuments({ guest: { $in: [a._id, b._id] } }), 0);
+    assert.equal(await Guest.countDocuments({ _id: theirs._id }), 1);
+
+    await post(`${G}/delete`, { ids: [] }).expect(400);
+    await post(`${G}/delete`, { ids: ['nope'] }).expect(400);
+  });
+});

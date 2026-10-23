@@ -23,6 +23,7 @@ export default function MembersCard() {
   const [confirmId, setConfirmId] = useState(null); // member awaiting "Yes, remove"
   const [busyId, setBusyId] = useState(null);
   const [showInvite, setShowInvite] = useState(false);
+  const [resent, setResent] = useState(null); // { email, emailSent, inviteUrl }
 
   const load = useCallback(async () => {
     try {
@@ -47,6 +48,21 @@ export default function MembersCard() {
       await api.changeMemberRole(wedding._id, m._id, role);
       if (isSelf(m)) setWedding((await api.getWedding(wedding._id)).wedding); // my own role changed
       await load();
+    } catch (err) {
+      setRowError(err.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // A new link replaces the old one, so this also works when the first email was lost.
+  async function resend(m) {
+    setBusyId(m._id);
+    setRowError('');
+    setResent(null);
+    try {
+      const res = await api.resendInvite(wedding._id, m._id);
+      setResent({ email: m.email, emailSent: res.emailSent, inviteUrl: res.inviteUrl });
     } catch (err) {
       setRowError(err.message);
     } finally {
@@ -87,6 +103,16 @@ export default function MembersCard() {
       {showInvite && <InviteForm onDone={() => setShowInvite(false)} onInvited={load} />}
       {loadError && <div className="alert" role="alert">{loadError}</div>}
       {rowError && <div className="alert" role="alert">{rowError}</div>}
+      {resent && (
+        <div className={resent.emailSent ? 'notice' : 'warn'} role="status">
+          <p>
+            {resent.emailSent
+              ? `Sent a new invitation to ${resent.email}. The old link no longer works.`
+              : `Made a new link for ${resent.email}, but no email was sent. Send them this link yourself:`}
+          </p>
+          <CopyLink url={resent.inviteUrl} label="Invitation link" />
+        </div>
+      )}
 
       {members === null && !loadError ? (
         <p className="muted" role="status">Loading members…</p>
@@ -136,6 +162,11 @@ export default function MembersCard() {
                         onClick={() => changeRole(m, m.role === 'owner' ? 'co-admin' : 'owner')}
                       >
                         {m.role === 'owner' ? 'Make co-admin' : 'Make owner'}
+                      </button>
+                    )}
+                    {canEdit && m.status === 'invited' && (
+                      <button type="button" className="link-button small" disabled={busy} onClick={() => resend(m)}>
+                        Resend invite
                       </button>
                     )}
                     {canRemove && (

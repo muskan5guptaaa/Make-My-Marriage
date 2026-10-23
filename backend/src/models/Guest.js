@@ -28,6 +28,7 @@ const guestSchema = new mongoose.Schema(
     accommodationNeeded: { type: Boolean, default: false },
     travelNotes: { type: String, trim: true },
     notes: { type: String, trim: true },
+    invitationSentAt: { type: Date }, // last time their link was emailed to them
   },
   { timestamps: true },
 );

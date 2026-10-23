@@ -11,6 +11,10 @@ const weddingMemberSchema = new mongoose.Schema(
     role: { type: String, enum: ['owner', 'co-admin'], required: true },
     invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     acceptedAt: { type: Date },
+    // The emailed /join/<token> link. Only the SHA-256 of the token is stored; re-sending
+    // an invite issues a new token, so the raw one never needs to be read back.
+    inviteTokenHash: { type: String },
+    inviteExpiresAt: { type: Date },
   },
   { timestamps: true },
 );
@@ -30,6 +34,7 @@ weddingMemberSchema.index(
   { unique: true, name: 'wedding_email_unique', partialFilterExpression: { invitedEmail: { $type: 'string' } } },
 );
 weddingMemberSchema.index({ user: 1 });
+weddingMemberSchema.index({ inviteTokenHash: 1 }, { unique: true, partialFilterExpression: { inviteTokenHash: { $type: 'string' } } });
 weddingMemberSchema.index({ invitedEmail: 1 }, { partialFilterExpression: { invitedEmail: { $type: 'string' } } });
 
 export const WeddingMember = mongoose.model('WeddingMember', weddingMemberSchema);

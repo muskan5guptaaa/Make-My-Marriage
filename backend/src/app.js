@@ -9,6 +9,7 @@ import { expenseRouter } from './routes/expense.routes.js';
 import { functionRouter } from './routes/function.routes.js';
 import { guestRouter } from './routes/guest.routes.js';
 import { memberRouter } from './routes/member.routes.js';
+import { portalRouter } from './routes/portal.routes.js';
 import { taskRouter } from './routes/task.routes.js';
 import { weddingRouter } from './routes/wedding.routes.js';
 
@@ -30,6 +31,7 @@ export function createApp() {
   app.use('/api/v1', taskRouter);
   app.use('/api/v1', guestRouter);
   app.use('/api/v1', expenseRouter);
+  app.use('/api/v1', portalRouter);
 
   app.use(notFound);
   app.use(errorHandler);

@@ -14,6 +14,12 @@ export default function Settings() {
       <div className="page-head">
         <h1 className="page-title">Settings</h1>
       </div>
+      {!isOwner && (
+        <div className="notice role-note" role="note">
+          You&rsquo;re a <b>co-admin</b>. You can plan functions, tasks, guests and the budget, and edit the wedding details.
+          Only owners can invite people, change roles or archive the wedding.
+        </div>
+      )}
       <WeddingDetails key={wedding._id} />
       <MembersCard />
       {isOwner && <ArchiveSection />}

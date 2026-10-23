@@ -136,7 +136,17 @@ export default function GuestDialog({ guestId, functions, canEdit, onClose, onCh
 
         {(!guestId || guest) && (
           <>
-            {guest && <LinkSection guest={guest} canEdit={canEdit} onChange={(link) => setGuest((g) => ({ ...g, link }))} />}
+            {guest && (
+              <LinkSection
+                guest={guest}
+                canEdit={canEdit}
+                onChange={(link) => setGuest((g) => ({ ...g, link }))}
+                onEmailed={(g) => {
+                  setGuest(g);
+                  onChanged();
+                }}
+              />
+            )}
             {guest && guest.rsvps.length > 0 && <RsvpSection guest={guest} canEdit={canEdit} onSaved={(g) => { setGuest(g); onChanged(); }} />}
 
             <form id="guest-form" onSubmit={onSubmit} noValidate>
@@ -246,11 +256,29 @@ export default function GuestDialog({ guestId, functions, canEdit, onClose, onCh
 }
 
 // The guest's private invitation link: copy it, replace it, or turn it off.
-function LinkSection({ guest, canEdit, onChange }) {
+function LinkSection({ guest, canEdit, onChange, onEmailed }) {
   const { wedding } = useWedding();
   const [confirm, setConfirm] = useState(null); // 'regenerate' | 'revoke'
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [emailNote, setEmailNote] = useState('');
+
+  async function emailIt() {
+    setBusy(true);
+    setError('');
+    setEmailNote('');
+    try {
+      const res = await api.sendGuestInvitation(wedding._id, guest._id);
+      onEmailed(res.guest);
+      setEmailNote(`Invitation emailed to ${guest.email}.`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const whatsapp = guest.link ? whatsappUrl(guest, wedding) : null;
 
   async function run(action) {
     setBusy(true);
@@ -273,8 +301,28 @@ function LinkSection({ guest, canEdit, onChange }) {
       {guest.link ? (
         <>
           <CopyLink url={guest.link.url} label={`Invitation link for ${guest.name}`} />
+          <div className="share-row">
+            {canEdit && (
+              <button
+                type="button"
+                className="btn btn-primary inline sm"
+                disabled={busy || !guest.email || guest.invitedFunctions.length === 0}
+                title={!guest.email ? 'Add an email address in Details first' : guest.invitedFunctions.length === 0 ? 'Choose functions first' : undefined}
+                onClick={emailIt}
+              >
+                {busy ? 'Sending…' : guest.invitationSentAt ? 'Email again' : 'Email invitation'}
+              </button>
+            )}
+            <a className="btn btn-outline inline sm whatsapp" href={whatsapp} target="_blank" rel="noreferrer">
+              Share on WhatsApp
+            </a>
+          </div>
+          {emailNote && <p className="saved small" role="status">{emailNote}</p>}
           <p className="muted small">
-            Send this to {guest.name} on WhatsApp or email. It opens only their invitations, with no login.{' '}
+            {!guest.email && 'No email address yet, so share it on WhatsApp or add an email in Details. '}
+            {guest.invitationSentAt &&
+              `Emailed ${new Date(guest.invitationSentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}. `}
+            It opens only their invitations, with no login.{' '}
             {guest.link.lastUsedAt ? `Last opened ${new Date(guest.link.lastUsedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}.` : 'Not opened yet.'}
           </p>
         </>
@@ -395,4 +443,17 @@ function RsvpRow({ guest, rsvp, canEdit, onSaved }) {
       {error && <p className="field-error">{error}</p>}
     </li>
   );
+}
+
+// WhatsApp with the message and link already typed. With a phone number it opens that chat
+// (10-digit numbers are taken as Indian, +91); without one, WhatsApp asks who to send it to.
+function whatsappUrl(guest, wedding) {
+  const text =
+    `Dear ${guest.name}, you're invited to ${wedding.brideName} & ${wedding.groomName}'s wedding! ` +
+    `See the functions and RSVP here: ${guest.link.url}`;
+  let digits = (guest.phone ?? '').replace(/\D/g, '');
+  if (digits.length === 10) digits = `91${digits}`;
+  if (digits.length === 11 && digits.startsWith('0')) digits = `91${digits.slice(1)}`;
+  const to = digits.length >= 11 ? digits : '';
+  return `https://wa.me/${to}?text=${encodeURIComponent(text)}`;
 }

@@ -1,0 +1,50 @@
+/* Guest portal: a calm, phone-first invitation page. Uses the app's tokens from styles.css. */
+.gp { min-height: 100vh; background:
+  radial-gradient(70% 40% at 50% 0%, rgba(194, 24, 91, 0.08), transparent 70%),
+  radial-gradient(40% 30% at 90% 10%, rgba(184, 134, 11, 0.1), transparent 70%), var(--bg); color: var(--ink); }
+.gp-loading { display: grid; place-items: center; color: var(--muted); }
+.gp-wrap { max-width: 620px; margin: 0 auto; padding: 56px 20px 40px; display: flex; flex-direction: column; gap: 18px; }
+.gp-center { min-height: 70vh; align-items: center; justify-content: center; text-align: center; }
+.gp-mark { width: 44px; height: 44px; border-radius: 12px; background: var(--accent); color: #fff; display: grid; place-items: center; font: 600 20px var(--display); }
+.gp-muted { color: var(--muted); margin: 0; }
+.gp-head { text-align: center; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.gp-eyebrow { font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.gp-title { font: 600 clamp(36px, 9vw, 52px)/1.08 var(--display); margin: 4px 0 0; }
+.gp-title.small { font-size: 28px; }
+.gp-sub { font: italic 500 17px var(--display); color: var(--muted); margin: 0; }
+.gp-dear { font-size: 15px; line-height: 1.6; color: var(--ink); margin: 10px auto 0; max-width: 440px; }
+.gp-section { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 8px 0 0; }
+.gp-cards { display: flex; flex-direction: column; gap: 14px; }
+.gp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 14px 34px -28px rgba(36, 23, 51, 0.45); }
+.gp-card.going { border-color: rgba(46, 125, 79, 0.4); }
+.gp-fn { font: 600 22px var(--display); margin: 0 0 4px; }
+.gp-line { font-size: 14.5px; color: var(--muted); margin: 0; }
+.gp-dress { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: #8a6508; margin: 8px 0 0; }
+.gp-desc { font-size: 14px; line-height: 1.55; margin: 8px 0 0; }
+.gp-live { align-self: flex-start; margin-top: 8px; font-size: 13.5px; font-weight: 600; color: var(--bad); }
+.gp-error { color: var(--bad); font-size: 13.5px; margin: 8px 0 0; }
+.gp-answer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.gp-going { font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--good); background: var(--good-soft); padding: 6px 12px; border-radius: 999px; }
+.gp-notgoing { font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); padding: 6px 12px; border-radius: 999px; }
+.gp-link { background: none; border: 0; padding: 4px 0; font: 600 13.5px var(--body); color: var(--accent); cursor: pointer; }
+.gp-buttons { display: flex; gap: 10px; margin-top: 16px; }
+.gp-buttons button { flex: 1; border-radius: 12px; padding: 13px 12px; font: 600 14px var(--body); cursor: pointer; min-height: 48px; }
+.gp-yes { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+.gp-yes:hover { background: var(--accent-hover); }
+.gp-no { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+.gp-no:hover { border-color: var(--ink); }
+.gp-buttons button:disabled { opacity: 0.6; cursor: progress; }
+.gp-form { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.gp-field { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.gp-field legend, .gp-legend { font-size: 13px; font-weight: 600; color: var(--muted); padding: 0; margin-bottom: 8px; }
+.gp-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.gp-chips button { min-width: 48px; min-height: 44px; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); font: 600 14px var(--body); cursor: pointer; }
+.gp-chips button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.gp-hint { font-size: 12.5px; color: var(--muted); margin: 0; }
+.gp-field textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; font: 14px/1.5 var(--body); color: var(--ink); background: var(--surface); resize: vertical; }
+.gp-foot { text-align: center; font-size: 11px; color: var(--muted); letter-spacing: 0.06em; margin-top: 20px; }
+@media (max-width: 420px) {
+  .gp-wrap { padding-top: 40px; }
+  .gp-card { padding: 18px; }
+  .gp-buttons { flex-direction: column; }
+}

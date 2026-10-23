@@ -71,12 +71,19 @@ export const api = {
   getGuest: (weddingId, guestId) => request(`/weddings/${weddingId}/guests/${guestId}`),
   createGuest: (weddingId, body) => request(`/weddings/${weddingId}/guests`, { method: 'POST', body }),
   updateGuest: (weddingId, guestId, body) => request(`/weddings/${weddingId}/guests/${guestId}`, { method: 'PATCH', body }),
+  deleteGuests: (weddingId, ids) => request(`/weddings/${weddingId}/guests/delete`, { method: 'POST', body: { ids } }),
   deleteGuest: (weddingId, guestId) => request(`/weddings/${weddingId}/guests/${guestId}`, { method: 'DELETE' }),
   setRsvp: (weddingId, guestId, functionId, body) =>
     request(`/weddings/${weddingId}/guests/${guestId}/rsvps/${functionId}`, { method: 'PATCH', body }),
   regenerateLink: (weddingId, guestId) => request(`/weddings/${weddingId}/guests/${guestId}/link/regenerate`, { method: 'POST' }),
   revokeLink: (weddingId, guestId) => request(`/weddings/${weddingId}/guests/${guestId}/link/revoke`, { method: 'POST' }),
   importGuests: (weddingId, csv) => request(`/weddings/${weddingId}/guests/import`, { method: 'POST', body: { csv } }),
+  sendGuestInvitation: (weddingId, guestId) => request(`/weddings/${weddingId}/guests/${guestId}/send-invitation`, { method: 'POST' }),
+  // body: { audience: 'not-sent' | 'pending', dryRun?: true }
+  sendGuestInvitations: (weddingId, body) => request(`/weddings/${weddingId}/guests/send-invitations`, { method: 'POST', body }),
+  getPortal: (token) => request(`/portal/${encodeURIComponent(token)}`),
+  answerPortalRsvp: (token, functionId, body) =>
+    request(`/portal/${encodeURIComponent(token)}/rsvps/${functionId}`, { method: 'PUT', body }),
   rsvpSummary: (weddingId) => request(`/weddings/${weddingId}/rsvps/summary`),
 
   listExpenseCategories: (weddingId) => request(`/weddings/${weddingId}/expense-categories`),
@@ -94,6 +101,10 @@ export const api = {
   createExpense: (weddingId, body) => request(`/weddings/${weddingId}/expenses`, { method: 'POST', body }),
   updateExpense: (weddingId, expenseId, body) => request(`/weddings/${weddingId}/expenses/${expenseId}`, { method: 'PATCH', body }),
   deleteExpense: (weddingId, expenseId) => request(`/weddings/${weddingId}/expenses/${expenseId}`, { method: 'DELETE' }),
+
+  resendInvite: (weddingId, memberId) => request(`/weddings/${weddingId}/members/${memberId}/resend`, { method: 'POST' }),
+  getMemberInvite: (token) => request(`/member-invites/${encodeURIComponent(token)}`),
+  acceptMemberInvite: (token) => request(`/member-invites/${encodeURIComponent(token)}/accept`, { method: 'POST' }),
 
   acceptInvite: (weddingId) => request(`/weddings/${weddingId}/members/accept`, { method: 'POST' }),
   declineInvite: (weddingId) => request(`/weddings/${weddingId}/members/decline`, { method: 'POST' }),

@@ -68,14 +68,20 @@ export async function forgotPassword(req, res) {
     await user.save();
 
     const link = `${env.webAppUrl}/reset-password?token=${token}`;
-    await sendEmail({
-      to: user.email,
-      subject: 'Reset your Make My Marriage password',
-      text:
-        `Hi ${user.name},\n\n` +
-        `Open this link to choose a new password. It works for 30 minutes.\n\n${link}\n\n` +
-        `If you didn't ask for this, ignore this email. Your password stays the same.`,
-    });
+    // A failed send is logged, not shown: the answer must look the same whether or not the
+    // account exists, and the person can simply ask again.
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Reset your Make My Marriage password',
+        text:
+          `Hi ${user.name},\n\n` +
+          `Open this link to choose a new password. It works for 30 minutes.\n\n${link}\n\n` +
+          `If you didn't ask for this, ignore this email. Your password stays the same.`,
+      });
+    } catch (err) {
+      console.error(`Password reset email to ${user.email} failed: ${err.message}`);
+    }
   }
 
   res.status(202).json({ message: 'If that email has an account, a reset link is on its way.' });

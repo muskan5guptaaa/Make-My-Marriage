@@ -52,3 +52,23 @@ export const rsvpSchema = z.object({
 export const importSchema = z.object({
   csv: z.string().min(1, 'Choose a CSV file.').max(1_000_000, 'The file is too large. Split it into smaller files.'),
 });
+
+// A guest answering on their own link: yes or no (planners can also set pending).
+export const portalRsvpSchema = z.object({
+  status: z.enum(['yes', 'no'], { message: 'Choose yes or no.' }),
+  plusOnes: z.coerce.number().int('Use a whole number.').min(0, 'Use 0 or more.').optional(),
+  mealPreference: optionalText(60),
+  note: optionalText(500),
+});
+
+export const sendInvitationsSchema = z.object({
+  audience: z.enum(['not-sent', 'pending'], { message: 'Choose who to email.' }),
+  dryRun: z.boolean().optional(),
+});
+
+export const deleteGuestsSchema = z.object({
+  ids: z
+    .array(z.string().refine((v) => mongoose.isValidObjectId(v), 'Unknown guest.'))
+    .min(1, 'Choose at least one guest.')
+    .max(2000, 'Delete at most 2000 guests at a time.'),
+});

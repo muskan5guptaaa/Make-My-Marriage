@@ -8,9 +8,11 @@ import Expenses from './pages/expenses/Expenses.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import Functions from './pages/Functions.jsx';
 import Guests from './pages/guests/Guests.jsx';
+import GuestPortal from './pages/portal/GuestPortal.jsx';
 import Home from './pages/home/Home.jsx';
 import HomeRedirect from './pages/HomeRedirect.jsx';
 import Invites from './pages/Invites.jsx';
+import JoinInvite from './pages/JoinInvite.jsx';
 import Register from './pages/Register.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Settings from './pages/Settings.jsx';
@@ -29,6 +31,10 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route path="/" element={<Home />} />
+      {/* Co-admin invitation links from email. */}
+      <Route path="/join/:token" element={<JoinInvite />} />
+      {/* Guest invitation links: no account needed. */}
+      <Route path="/i/:token" element={<GuestPortal />} />
 
       <Route element={<RequireAuth />}>
         <Route path="/app" element={<HomeRedirect />} />

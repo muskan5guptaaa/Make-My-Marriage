@@ -5,6 +5,7 @@ import { Guest } from '../models/Guest.js';
 import { GuestLink } from '../models/GuestLink.js';
 import { AppError, badRequest, notFoundError } from '../utils/AppError.js';
 import { parseCsv } from '../utils/csv.js';
+import { sendEmail } from '../utils/email.js';
 import { randomToken } from '../utils/tokens.js';
 import { GROUPS, RSVP_STATUSES, SIDES, createGuestSchema } from '../validators/guest.schemas.js';
 
@@ -25,7 +26,7 @@ export function overallStatus(guest) {
 const headsOf = (guest) => guest.rsvps.reduce((n, r) => (r.status === 'yes' ? n + 1 + r.plusOnes : n), 0);
 
 async function functionNames(weddingId) {
-  const list = await WeddingFunction.find({ wedding: weddingId }).sort({ startsAt: 1 }).select('name localDate');
+  const list = await WeddingFunction.find({ wedding: weddingId }).sort({ startsAt: 1 }).select('name localDate startTime venue');
   return new Map(list.map((f) => [String(f._id), f]));
 }
 
@@ -55,6 +56,7 @@ function toGuest(g, fns, link) {
     })),
     rsvpStatus: overallStatus(g),
     heads: headsOf(g),
+    invitationSentAt: g.invitationSentAt ?? null,
     createdAt: g.createdAt,
     updatedAt: g.updatedAt,
   };
@@ -381,3 +383,102 @@ export async function importGuests(req, res) {
   res.status(201).json({ created: toCreate.length, skipped });
 }
 
+
+// ---- emailing invitations ----
+
+// The invitation email: who, which functions, and the guest's own link.
+function invitationEmail(guest, wedding, fns, token) {
+  const couple = `${wedding.brideName} & ${wedding.groomName}`;
+  const lines = guest.invitedFunctions
+    .map((id) => fns.get(String(id)))
+    .filter(Boolean)
+    .map((f) => {
+      const day = new Date(`${f.localDate}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+      return `  • ${f.name}: ${day}${f.startTime ? `, ${f.startTime}` : ''}${f.venue ? `, ${f.venue}` : ''}`;
+    });
+  return {
+    to: guest.email,
+    subject: `You're invited: ${couple}`,
+    text:
+      `Dear ${guest.name},\n\n` +
+      `${couple} would love you to join them for:\n${lines.join('\n')}\n\n` +
+      `See the details and RSVP for each function here (no login needed):\n${linkUrl(token)}\n\n` +
+      `This link is just for you, so please don't forward it.\n\nWith love,\n${couple}`,
+  };
+}
+
+// Sends one guest their link and records when. Returns { delivered, reason? }.
+async function emailGuest(guest, wedding, fns) {
+  if (!guest.email) return { delivered: false, reason: 'no_email' };
+  if (guest.invitedFunctions.length === 0) return { delivered: false, reason: 'no_functions' };
+  const link = await activeLink(guest._id);
+  if (!link) return { delivered: false, reason: 'no_link' };
+  try {
+    const { delivered } = await sendEmail(invitationEmail(guest, wedding, fns, link.token));
+    if (!delivered) return { delivered: false, reason: 'email_not_set_up' };
+  } catch (err) {
+    console.error(`Invitation email to ${guest.email} failed: ${err.message}`);
+    return { delivered: false, reason: 'send_failed' };
+  }
+  guest.invitationSentAt = new Date();
+  await guest.save();
+  return { delivered: true };
+}
+
+const WHY_NOT_SENT = {
+  no_email: 'This guest has no email address. Add one, or share the link on WhatsApp.',
+  no_functions: 'Choose at least one function for this guest first.',
+  no_link: 'This guest’s link is turned off. Make a new link first.',
+  email_not_set_up: 'Email isn’t set up on the server, so nothing was sent. Copy the link and send it yourself.',
+  send_failed: 'The email could not be sent. Try again, or copy the link and send it yourself.',
+};
+
+export async function sendInvitation(req, res) {
+  const guest = await loadGuest(req);
+  const result = await emailGuest(guest, req.wedding, await functionNames(req.wedding._id));
+  if (!result.delivered) {
+    const status = result.reason === 'send_failed' || result.reason === 'email_not_set_up' ? 502 : 409;
+    throw new AppError(status, result.reason, WHY_NOT_SENT[result.reason]);
+  }
+  await sendGuest(res, req, guest._id);
+}
+
+// Bulk send. audience: "not-sent" (never emailed) or "pending" (still has unanswered functions).
+// dryRun: true only counts, so the page can ask "Send to 42 guests?" first.
+// Sends one after another: Gmail allows about 500 a day, Resend's free plan 100.
+export async function sendInvitations(req, res) {
+  const { audience, dryRun } = req.body;
+  const guests = await Guest.find({ wedding: req.wedding._id }).collation({ locale: 'en', strength: 2 }).sort({ name: 1 });
+  const links = new Set((await GuestLink.find({ wedding: req.wedding._id, revokedAt: null }).select('guest')).map((l) => String(l.guest)));
+
+  const inAudience = guests.filter((g) =>
+    audience === 'pending' ? overallStatus(g) === 'pending' : overallStatus(g) !== 'not-invited' && !g.invitationSentAt,
+  );
+  const ready = inAudience.filter((g) => g.email && links.has(String(g._id)));
+  const counts = { eligible: ready.length, withoutEmail: inAudience.filter((g) => !g.email).length };
+  if (dryRun) return res.json({ ...counts, sent: 0, failed: [] });
+
+  const fns = await functionNames(req.wedding._id);
+  let sent = 0;
+  const failed = [];
+  for (const g of ready) {
+    const result = await emailGuest(g, req.wedding, fns);
+    if (result.delivered) sent++;
+    else failed.push({ _id: g._id, name: g.name, email: g.email, reason: WHY_NOT_SENT[result.reason] });
+    if (result.reason === 'email_not_set_up') break; // nothing else will work either
+  }
+  res.json({ ...counts, sent, failed });
+}
+
+// Delete several guests at once (and their links). Ids from another wedding are ignored.
+export async function deleteGuests(req, res) {
+  const ids = [...new Set(req.body.ids)];
+  let deleted = 0;
+  await inTransaction(async (session) => {
+    const found = await Guest.find({ _id: { $in: ids }, wedding: req.wedding._id }).select('_id').session(session);
+    const own = found.map((g) => g._id);
+    await GuestLink.deleteMany({ guest: { $in: own } }, { session });
+    deleted = (await Guest.deleteMany({ _id: { $in: own } }, { session })).deletedCount;
+  });
+  res.json({ deleted });
+}

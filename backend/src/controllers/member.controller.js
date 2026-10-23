@@ -1,11 +1,14 @@
 import mongoose from 'mongoose';
 import { env } from '../config/env.js';
+import { WeddingFunction } from '../models/Function.js';
 import { Task } from '../models/Task.js';
 import { User } from '../models/User.js';
 import { Wedding } from '../models/Wedding.js';
 import { WeddingMember } from '../models/WeddingMember.js';
 import { AppError, conflict, forbidden, notFoundError } from '../utils/AppError.js';
 import { sendEmail } from '../utils/email.js';
+import { randomToken, sha256 } from '../utils/tokens.js';
+import { weddingDateRange } from './function.controller.js';
 import { toWedding } from './wedding.controller.js';
 
 const memberNotFound = () => notFoundError('member_not_found', 'This member is not part of this wedding.');
@@ -82,26 +85,118 @@ export async function inviteMember(req, res) {
     throw err;
   }
   const member = await populated(WeddingMember.findById(created._id));
+  const { inviteUrl, emailSent } = await issueInvite(member, wedding, req.user, Boolean(existingUser));
+  res.status(201).json({ member: toMember(member), emailSent, inviteUrl });
+}
 
-  // The invite stands even if the email doesn't go out; the owner can share inviteUrl by hand.
-  const inviteUrl = `${env.webAppUrl}/invites`;
+const INVITE_DAYS = 14;
+const joinUrl = (token) => `${env.webAppUrl}/join/${token}`;
+
+// Gives the invite a fresh private link (any older link stops working) and emails it.
+// The invite stands even if the email doesn't go out; the owner can share inviteUrl by hand.
+async function issueInvite(member, wedding, inviter, hasAccount) {
+  const token = randomToken();
+  member.inviteTokenHash = sha256(token);
+  member.inviteExpiresAt = new Date(Date.now() + INVITE_DAYS * 24 * 60 * 60 * 1000);
+  await member.save();
+
+  const inviteUrl = joinUrl(token);
+  const couple = `${wedding.brideName} & ${wedding.groomName}`;
+  const expires = member.inviteExpiresAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   let emailSent = false;
   try {
-    const couple = `${wedding.brideName} & ${wedding.groomName}`;
     const { delivered } = await sendEmail({
-      to: email,
-      subject: `${req.user.name} invited you to help plan ${couple}`,
+      to: member.invitedEmail,
+      subject: `${inviter.name} invited you to help plan ${couple}`,
       text:
-        `${req.user.name} invited you to help plan ${couple} on Make My Marriage as a co-admin.\n\n` +
-        `${existingUser ? 'Sign in' : 'Create an account'} with this email address (${email}) to accept:\n` +
-        `${inviteUrl}\n`,
+        `${inviter.name} invited you to help plan ${couple}'s wedding on Make My Marriage, as a co-admin.\n\n` +
+        `Open your invitation to see the functions and accept:\n${inviteUrl}\n\n` +
+        `${hasAccount ? 'Sign in' : 'Create an account'} with ${member.invitedEmail} to accept. ` +
+        `This link works until ${expires}.\n\n` +
+        `If you weren't expecting this, you can ignore this email.`,
     });
     emailSent = delivered;
   } catch (err) {
     console.error('Invite email failed:', err.message);
   }
+  return { inviteUrl, emailSent };
+}
 
-  res.status(201).json({ member: toMember(member), emailSent, inviteUrl });
+// Owner sends a pending invite again, with a new link.
+export async function resendInvite(req, res) {
+  const member = await loadMember(req);
+  if (member.acceptedAt) throw conflict('already_member', 'This person has already accepted.');
+  const hasAccount = Boolean(member.user) || Boolean(await User.exists({ email: member.invitedEmail }));
+  const { inviteUrl, emailSent } = await issueInvite(member, req.wedding, req.user, hasAccount);
+  res.json({ member: toMember(member), emailSent, inviteUrl });
+}
+
+// ---- the /join/<token> page: readable by anyone holding the link ----
+
+const inviteLinkNotFound = () =>
+  notFoundError('invite_link_invalid', 'This invitation link is not valid. It may have been cancelled or replaced by a newer one.');
+
+async function findByToken(token) {
+  if (typeof token !== 'string' || token.length < 20) throw inviteLinkNotFound();
+  const member = await WeddingMember.findOne({ inviteTokenHash: sha256(token) }).populate('invitedBy', 'name');
+  if (!member) throw inviteLinkNotFound();
+  const wedding = await Wedding.findById(member.wedding);
+  if (!wedding) throw inviteLinkNotFound();
+  return { member, wedding };
+}
+
+const inviteState = (member) =>
+  member.acceptedAt ? 'accepted' : member.inviteExpiresAt && member.inviteExpiresAt < new Date() ? 'expired' : 'pending';
+
+// What the invitation page shows: the couple, dates, functions, who is invited and as what,
+// and whether that email already has an account (so the page offers Sign in or Create account).
+export async function getInviteByToken(req, res) {
+  const { member, wedding } = await findByToken(req.params.token);
+  const functions = await WeddingFunction.find({ wedding: wedding._id }).sort({ startsAt: 1 }).select('name localDate startTime venue');
+  res.json({
+    invite: {
+      status: inviteState(member),
+      email: member.invitedEmail,
+      role: member.role,
+      invitedBy: member.invitedBy ? { name: member.invitedBy.name } : null,
+      expiresAt: member.inviteExpiresAt ?? null,
+      hasAccount: Boolean(member.user) || Boolean(await User.exists({ email: member.invitedEmail })),
+      wedding: {
+        _id: wedding._id,
+        brideName: wedding.brideName,
+        groomName: wedding.groomName,
+        timezone: wedding.timezone,
+        status: wedding.status,
+        dateRange: await weddingDateRange(wedding._id),
+        functions: functions.map((f) => ({
+          _id: f._id,
+          name: f.name,
+          localDate: f.localDate,
+          startTime: f.startTime ?? null,
+          venue: f.venue ?? null,
+        })),
+      },
+    },
+  });
+}
+
+// Accept from the link. Only the account whose email was invited can accept it.
+export async function acceptInviteByToken(req, res) {
+  const { member, wedding } = await findByToken(req.params.token);
+  if (member.invitedEmail !== req.user.email) {
+    throw forbidden('wrong_account', `This invitation is for ${member.invitedEmail}. Sign in with that email to accept it.`);
+  }
+  if (member.acceptedAt) {
+    if (String(member.user) !== String(req.user._id)) throw inviteLinkNotFound();
+    return res.json({ wedding: toWedding(wedding, member.role) }); // already in: just open it
+  }
+  if (inviteState(member) === 'expired') {
+    throw new AppError(410, 'invite_expired', 'This invitation has expired. Ask the couple to send it again.');
+  }
+  member.user = req.user._id;
+  member.acceptedAt = new Date();
+  await member.save();
+  res.json({ wedding: toWedding(wedding, member.role) });
 }
 
 // Owners can change any role; at least one owner must remain.

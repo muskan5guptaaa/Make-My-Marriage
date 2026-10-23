@@ -14,10 +14,12 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
-// Sign in and Register skip straight to the app when already signed in.
+// Sign in and Register skip straight to the app when already signed in, or back to the page
+// that sent them here (such as an invitation link).
 export function GuestOnly() {
   const { user, ready } = useAuth();
+  const location = useLocation();
   if (!ready) return <Splash />;
-  if (user) return <Navigate to="/app" replace />;
+  if (user) return <Navigate to={location.state?.from ?? '/app'} replace />;
   return <Outlet />;
 }

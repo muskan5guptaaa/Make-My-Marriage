@@ -3,6 +3,7 @@ import { api } from '../../api.js';
 import { useWedding } from '../../layout/WeddingContext.js';
 import GuestDialog from './GuestDialog.jsx';
 import { RSVP, SIDES, sideName } from './guestLabels.js';
+import EmailInvitesDialog from './EmailInvitesDialog.jsx';
 import ImportDialog from './ImportDialog.jsx';
 
 // The Guests screen from the design: search, then a table of Name, Side, Functions, Plus-ones, RSVP.
@@ -21,7 +22,12 @@ export default function Guests() {
   const [functions, setFunctions] = useState([]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(undefined); // undefined closed, null adding, id editing
+  const [selected, setSelected] = useState(() => new Set());
+  const [confirmRow, setConfirmRow] = useState(null); // guest id awaiting "Yes"
+  const [confirmBulk, setConfirmBulk] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [emailing, setEmailing] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setQuery(q), 250);
@@ -51,6 +57,35 @@ export default function Guests() {
     load();
   }, [load]);
 
+  // Only guests still shown count as selected, so a filter never deletes hidden rows.
+  const shownIds = new Set((guests ?? []).map((g) => g._id));
+  const selectedIds = [...selected].filter((id) => shownIds.has(id));
+  const allShownSelected = shownIds.size > 0 && selectedIds.length === shownIds.size;
+  const toggle = (id) =>
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  async function removeGuests(ids) {
+    setDeleting(true);
+    setError('');
+    try {
+      await api.deleteGuests(wedding._id, ids);
+      setSelected(new Set());
+      setConfirmRow(null);
+      setConfirmBulk(false);
+      await load();
+      loadFunctions(); // guest counts on functions change
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const filtered = Boolean(query.trim() || side || fnFilter || rsvp);
   const clearFilters = () => {
     setQ('');
@@ -67,6 +102,9 @@ export default function Guests() {
         {canEdit && (
           <div className="head-actions">
             <button type="button" className="btn btn-outline inline" onClick={() => setImporting(true)}>Import CSV</button>
+            {summary?.total > 0 && (
+              <button type="button" className="btn btn-outline inline" onClick={() => setEmailing(true)}>Email invitations</button>
+            )}
             <button type="button" className="btn btn-primary inline" onClick={() => setEditing(null)}>+ Add guest</button>
           </div>
         )}
@@ -150,20 +188,60 @@ export default function Guests() {
         </section>
       ) : (
         <section className="card table-card">
+          {canEdit && selectedIds.length > 0 && (
+            <div className="bulk-bar" role="region" aria-label="Selected guests">
+              {confirmBulk ? (
+                <span className="confirm">
+                  <span>
+                    Delete {selectedIds.length} guest{selectedIds.length === 1 ? '' : 's'}? Their invitation links stop working.
+                  </span>
+                  <button type="button" className="btn btn-danger inline sm" disabled={deleting} onClick={() => removeGuests(selectedIds)}>
+                    {deleting ? 'Deleting…' : 'Yes, delete'}
+                  </button>
+                  <button type="button" className="btn btn-outline inline sm" disabled={deleting} onClick={() => setConfirmBulk(false)}>Keep</button>
+                </span>
+              ) : (
+                <>
+                  <span className="bulk-count">{selectedIds.length} selected</span>
+                  <button type="button" className="btn btn-danger-outline inline sm" onClick={() => setConfirmBulk(true)}>
+                    Delete selected
+                  </button>
+                  <button type="button" className="link-button small" onClick={() => setSelected(new Set())}>Clear</button>
+                </>
+              )}
+            </div>
+          )}
           <div className="table-scroll">
             <table className="guest-table">
               <thead>
                 <tr>
+                  {canEdit && (
+                    <th scope="col" className="check-col">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all guests shown"
+                        checked={allShownSelected}
+                        ref={(el) => el && (el.indeterminate = selectedIds.length > 0 && !allShownSelected)}
+                        onChange={() => setSelected(allShownSelected ? new Set() : new Set((guests ?? []).map((g) => g._id)))}
+                      />
+                    </th>
+                  )}
                   <th scope="col">Name</th>
                   <th scope="col">Side</th>
                   <th scope="col">Functions</th>
                   <th scope="col" className="num">Plus-ones</th>
                   <th scope="col">RSVP</th>
+                  {canEdit && <th scope="col"><span className="sr-only">Actions</span></th>}
                 </tr>
               </thead>
               <tbody>
                 {(guests ?? []).map((g) => (
-                  <tr key={g._id}>
+                  <tr key={g._id} className={selected.has(g._id) ? 'is-selected' : undefined}>
+                    {canEdit && (
+                      <td className="check-col">
+                        <input type="checkbox" aria-label={`Select ${g.name}`} checked={selected.has(g._id)} onChange={() => toggle(g._id)} />
+                      </td>
+                    )}
                     <td>
                       <button type="button" className="row-link" onClick={() => setEditing(g._id)}>
                         <span className="guest-name">{g.name}</span>
@@ -178,6 +256,21 @@ export default function Guests() {
                     <td>
                       <span className={`rsvp-pill ${g.rsvpStatus}`}>{RSVP[g.rsvpStatus].label}</span>
                     </td>
+                    {canEdit && (
+                      <td className="row-actions-cell">
+                        {confirmRow === g._id ? (
+                          <span className="confirm">
+                            <span className="small">Delete {g.name}?</span>
+                            <button type="button" className="btn btn-danger inline sm" disabled={deleting} onClick={() => removeGuests([g._id])}>Yes</button>
+                            <button type="button" className="btn btn-outline inline sm" disabled={deleting} onClick={() => setConfirmRow(null)}>Keep</button>
+                          </span>
+                        ) : (
+                          <button type="button" className="link-button small danger" onClick={() => setConfirmRow(g._id)} aria-label={`Delete ${g.name}`}>
+                            Delete
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -199,6 +292,7 @@ export default function Guests() {
           onCreated={(id) => setEditing(id)}
         />
       )}
+      {emailing && <EmailInvitesDialog onClose={() => setEmailing(false)} onSent={load} />}
       {importing && (
         <ImportDialog
           functions={functions}

@@ -8,7 +8,7 @@ export default function SignIn() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: location.state?.email ?? '', password: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [fields, setFields] = useState({});
@@ -74,7 +74,9 @@ export default function SignIn() {
 
       <div className="or"><span /><b className="mono">OR</b><span /></div>
 
-      <Link to="/register" className="btn btn-outline">Create your wedding</Link>
+      <Link to="/register" state={location.state} className="btn btn-outline">
+        {location.state?.from?.startsWith('/join/') ? 'Create an account' : 'Create your wedding'}
+      </Link>
     </AuthLayout>
   );
 }

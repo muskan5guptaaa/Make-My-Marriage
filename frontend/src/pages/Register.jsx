@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext.jsx';
 import AuthLayout from '../components/AuthLayout.jsx';
 import Field from '../components/Field.jsx';
@@ -7,7 +7,8 @@ import Field from '../components/Field.jsx';
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' });
+  const location = useLocation();
+  const [form, setForm] = useState({ name: '', email: location.state?.email ?? '', phone: '', password: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [fields, setFields] = useState({});
@@ -23,7 +24,8 @@ export default function Register() {
       const body = { name: form.name, email: form.email, password: form.password };
       if (form.phone.trim()) body.phone = form.phone; // optional: leave it out when blank
       await register(body);
-      navigate('/app', { replace: true }); // invitations if they were invited, else Create your wedding
+      // Back to an invitation link if that's where they came from; else invitations or Create your wedding.
+      navigate(location.state?.from ?? '/app', { replace: true });
     } catch (err) {
       setFields(err.fields);
       if (Object.keys(err.fields).length === 0) setError(err.message);
@@ -94,7 +96,7 @@ export default function Register() {
 
       <div className="or"><span /><b className="mono">OR</b><span /></div>
 
-      <Link to="/signin" className="btn btn-outline">I already have an account</Link>
+      <Link to="/signin" state={location.state} className="btn btn-outline">I already have an account</Link>
     </AuthLayout>
   );
 }
