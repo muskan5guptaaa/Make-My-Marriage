@@ -553,3 +553,4 @@ textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3
 .bulk-access select { width: auto; padding: 6px 10px; font-size: 13px; }
 .warn-dot { color: var(--bad); font-weight: 700; }
 .guest-of { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.email-blocked { margin: 0; color: #6b4e06; background: var(--gold-soft); border-radius: 8px; padding: 8px 10px; }

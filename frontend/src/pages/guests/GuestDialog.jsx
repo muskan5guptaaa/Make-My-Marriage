@@ -297,6 +297,13 @@ function LinkSection({ guest, canEdit, onChange, onEmailed }) {
 
   const whatsapp = guest.link ? whatsappUrl(guest, wedding) : null;
 
+  // Why "Email invitation" can't be used yet, shown under the button rather than only on hover.
+  const emailBlocked = !guest.email
+    ? 'To email the invitation, add their email address under Details below and save. Or share it on WhatsApp.'
+    : guest.invitedFunctions.length === 0
+      ? 'To email the invitation, tick at least one function under "Invited to" below and save. The email lists their functions.'
+      : null;
+
   async function run(action) {
     setBusy(true);
     setError('');
@@ -323,8 +330,8 @@ function LinkSection({ guest, canEdit, onChange, onEmailed }) {
               <button
                 type="button"
                 className="btn btn-primary inline sm"
-                disabled={busy || !guest.email || guest.invitedFunctions.length === 0}
-                title={!guest.email ? 'Add an email address in Details first' : guest.invitedFunctions.length === 0 ? 'Choose functions first' : undefined}
+                disabled={busy || Boolean(emailBlocked)}
+                aria-describedby={emailBlocked ? 'email-blocked' : undefined}
                 onClick={emailIt}
               >
                 {busy ? 'Sending…' : guest.invitationSentAt ? 'Email again' : 'Email invitation'}
@@ -334,9 +341,11 @@ function LinkSection({ guest, canEdit, onChange, onEmailed }) {
               Share on WhatsApp
             </a>
           </div>
+          {canEdit && emailBlocked && (
+            <p id="email-blocked" className="email-blocked small">{emailBlocked}</p>
+          )}
           {emailNote && <p className="saved small" role="status">{emailNote}</p>}
           <p className="muted small">
-            {!guest.email && 'No email address yet, so share it on WhatsApp or add an email in Details. '}
             {guest.invitationSentAt &&
               `Emailed ${new Date(guest.invitationSentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}. `}
             It opens only their invitations, with no login.{' '}
