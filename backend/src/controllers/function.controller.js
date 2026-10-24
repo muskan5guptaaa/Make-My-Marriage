@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { Expense } from '../models/Expense.js';
 import { WeddingFunction } from '../models/Function.js';
 import { Guest } from '../models/Guest.js';
+import { Album } from '../models/Photo.js';
 import { Task } from '../models/Task.js';
 import { invitedCounts } from './guest.controller.js';
 import { notFoundError } from '../utils/AppError.js';
@@ -106,7 +107,7 @@ export async function updateFunction(req, res) {
 }
 
 // Tasks and expenses keep existing without a function, and guests lose the invitation and its
-// answer. Albums (a later step) are cleared inside this same transaction too.
+// answer. Its photo album stays, as a general album.
 export async function deleteFunction(req, res) {
   const fn = await loadFunction(req);
   const session = await mongoose.startSession();
@@ -114,6 +115,7 @@ export async function deleteFunction(req, res) {
     await session.withTransaction(async () => {
       await Task.updateMany({ wedding: req.wedding._id, function: fn._id }, { $unset: { function: 1 } }, { session });
       await Expense.updateMany({ wedding: req.wedding._id, function: fn._id }, { $unset: { function: 1 } }, { session });
+      await Album.updateMany({ wedding: req.wedding._id, function: fn._id }, { $unset: { function: 1 } }, { session });
       await Guest.updateMany(
         { wedding: req.wedding._id, invitedFunctions: fn._id },
         { $pull: { invitedFunctions: fn._id, rsvps: { function: fn._id } } },

@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
+import { cleanupAbandonedUploads } from './controllers/photo.controller.js';
+import { photosReady } from './utils/cloudinary.js';
 import { emailMode } from './utils/email.js';
 
 env.jwtSecret(); // fail at startup, not on the first sign-in
@@ -17,3 +19,10 @@ createApp().listen(env.port, () => {
       : `Email: sending through ${emailMode}.`,
   );
 });
+
+// Uploads that were started but never finished are removed after a day.
+if (photosReady()) {
+  const sweep = () => cleanupAbandonedUploads().catch((err) => console.error('Photo cleanup failed:', err.message));
+  sweep();
+  setInterval(sweep, 60 * 60 * 1000).unref();
+}

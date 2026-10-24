@@ -3,7 +3,7 @@ import * as guests from '../controllers/guest.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 import { loadWedding, requireActive } from '../middleware/membership.js';
 import { validateBody } from '../middleware/validate.js';
-import { createGuestSchema, deleteGuestsSchema, importSchema, rsvpSchema, sendInvitationsSchema, updateGuestSchema } from '../validators/guest.schemas.js';
+import { createGuestSchema, deleteGuestsSchema, importSchema, photoAccessSchema, rsvpSchema, sendInvitationsSchema, updateGuestSchema } from '../validators/guest.schemas.js';
 
 export const guestRouter = Router();
 
@@ -18,6 +18,7 @@ guestRouter.get(G, ...member, guests.listGuests);
 guestRouter.post(G, ...write, validateBody(createGuestSchema), guests.createGuest);
 guestRouter.post(`${G}/import`, ...write, validateBody(importSchema), guests.importGuests);
 guestRouter.post(`${G}/delete`, ...write, validateBody(deleteGuestsSchema), guests.deleteGuests);
+guestRouter.post(`${G}/photo-access`, ...write, validateBody(photoAccessSchema), guests.setPhotoAccess);
 guestRouter.post(`${G}/send-invitations`, ...write, validateBody(sendInvitationsSchema), guests.sendInvitations);
 guestRouter.get(`${W}/rsvps/summary`, ...member, guests.rsvpSummary);
 

@@ -4,7 +4,9 @@ import { Expense, ExpenseCategory } from '../models/Expense.js';
 import { WeddingFunction } from '../models/Function.js';
 import { Guest } from '../models/Guest.js';
 import { GuestLink } from '../models/GuestLink.js';
+import { Album, Photo } from '../models/Photo.js';
 import { Task } from '../models/Task.js';
+import { deleteWeddingPhotos } from './photo.controller.js';
 import { WeddingMember } from '../models/WeddingMember.js';
 import { AppError, badRequest } from '../utils/AppError.js';
 import { weddingSlug } from '../utils/slug.js';
@@ -129,6 +131,8 @@ export async function deleteWedding(req, res) {
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {
+      await Photo.deleteMany({ wedding: wedding._id }, { session });
+      await Album.deleteMany({ wedding: wedding._id }, { session });
       await Expense.deleteMany({ wedding: wedding._id }, { session });
       await ExpenseCategory.deleteMany({ wedding: wedding._id }, { session });
       await GuestLink.deleteMany({ wedding: wedding._id }, { session });
@@ -141,5 +145,7 @@ export async function deleteWedding(req, res) {
   } finally {
     await session.endSession();
   }
+  // Files go after the rows. If this fails, the files are unreachable and can be removed later.
+  await deleteWeddingPhotos(wedding._id).catch((err) => console.error(`Deleting photos of wedding ${wedding._id} failed: ${err.message}`));
   res.status(204).end();
 }

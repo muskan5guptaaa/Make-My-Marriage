@@ -8,7 +8,7 @@ import { setLastWedding } from '../lib/lastWedding.js';
 
 // Weddings the signed-in person was invited to help plan. Invite emails link here.
 export default function Invites() {
-  const { user, invites, weddings, refresh } = useAuth();
+  const { user, invites, weddings, guestOf, refresh } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(null); // wedding id being answered
   const [error, setError] = useState('');
@@ -46,7 +46,21 @@ export default function Invites() {
     >
       {error && <div className="alert" role="alert">{error}</div>}
 
-      {invites.length === 0 ? (
+      {guestOf.length > 0 && (
+        <div className="guest-of">
+          <div className="join-label mono">You&rsquo;re a guest at</div>
+          <ul className="invite-list">
+            {guestOf.map((g) => (
+              <li key={g.path} className="invite">
+                <div className="invite-name">{g.wedding.brideName} &amp; {g.wedding.groomName}</div>
+                <Link to={g.path} className="btn btn-primary inline">Open my invitation</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {invites.length === 0 && guestOf.length > 0 ? null : invites.length === 0 ? (
         <div className="notice" role="status">
           No invitations right now. If someone invited you, check they used {user.email}.
         </div>

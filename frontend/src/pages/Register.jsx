@@ -75,6 +75,7 @@ export default function Register() {
           value={form.phone}
           onChange={set('phone')}
           error={fields.phone}
+          hint="10-digit mobile, or with country code."
         />
         <Field
           id="password"

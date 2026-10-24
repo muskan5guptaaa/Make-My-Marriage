@@ -17,3 +17,9 @@ export const RSVP = {
 };
 export const MEALS = ['Veg', 'Non-veg', 'Jain', 'Vegan', 'No preference'];
 export const sideName = (s) => SIDES.find(([v]) => v === s)?.[1] ?? s;
+export const PHOTO_ACCESS = [
+  ['none', 'No access'],
+  ['view', 'Can view photos'],
+  ['upload', 'Can view and add photos'],
+];
+export const photoAccessShort = { none: 'No', view: 'View', upload: 'View + add' };

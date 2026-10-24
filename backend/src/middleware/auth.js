@@ -49,3 +49,15 @@ export async function requireAuth(req, _res, next) {
   req.user = user;
   next();
 }
+
+// For pages anyone can open (the guest portal): sets req.user when a valid session is
+// present, and simply carries on without one.
+export async function optionalAuth(req, res, next) {
+  if (!req.cookies?.[SESSION_COOKIE]) return next();
+  try {
+    await requireAuth(req, res, () => {});
+  } catch {
+    req.user = undefined; // an expired session counts as signed out here
+  }
+  next();
+}

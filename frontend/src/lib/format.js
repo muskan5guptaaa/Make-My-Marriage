@@ -105,3 +105,10 @@ export function timezoneOptions(current) {
   if (current && !zones.includes(current)) zones = [current, ...zones];
   return zones;
 }
+
+// "+918707463461" → "+91 87074 63461" for reading; other numbers are shown as saved.
+export function formatPhone(phone) {
+  if (!phone) return '';
+  const m = /^\+91(\d{5})(\d{5})$/.exec(phone);
+  return m ? `+91 ${m[1]} ${m[2]}` : phone;
+}

@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 import { User } from '../models/User.js';
 import { WeddingMember } from '../models/WeddingMember.js';
 import { clearSessionCookie, setSessionCookie } from '../middleware/auth.js';
+import { guestInvitationsFor } from './guest.controller.js';
 import { myPendingInvites } from './member.controller.js';
 import { AppError, conflict, unauthorized } from '../utils/AppError.js';
 import { sendEmail } from '../utils/email.js';
@@ -127,5 +128,10 @@ export async function me(req, res) {
       acceptedAt: m.acceptedAt ?? null,
     }));
 
-  res.json({ user: req.user.toPublic(), weddings, invites: await myPendingInvites(req.user) });
+  res.json({
+    user: req.user.toPublic(),
+    weddings,
+    invites: await myPendingInvites(req.user),
+    guestOf: await guestInvitationsFor(req.user),
+  });
 }

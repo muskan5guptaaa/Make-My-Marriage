@@ -1,21 +1,30 @@
 import mongoose from 'mongoose';
 import { z } from 'zod';
+import { PHONE_MESSAGE, normalizePhone } from '../utils/phone.js';
 
 const blankToNull = (v) => (typeof v === 'string' && v.trim() === '' ? null : v);
 const optionalText = (max) =>
   z.preprocess(blankToNull, z.string().trim().max(max, `Use at most ${max} characters.`).nullable().optional());
 
+// Saved as +<country code><number>, so the same person always has the same phone.
+export const phoneField = z.string().trim().transform((value, ctx) => {
+  const phone = normalizePhone(value);
+  if (!phone) {
+    ctx.addIssue({ code: 'custom', message: PHONE_MESSAGE });
+    return z.NEVER;
+  }
+  return phone;
+});
+
 export const SIDES = ['bride', 'groom', 'both'];
 export const GROUPS = ['family', 'friends', 'colleagues', 'other'];
 export const RSVP_STATUSES = ['pending', 'yes', 'no'];
 export const MAX_PLUS_ONES = 10;
+export const PHOTO_ACCESS = ['none', 'view', 'upload'];
 
 const fields = {
   name: z.string().trim().min(1, "Enter the guest's name.").max(100, 'Use at most 100 characters.'),
-  phone: z.preprocess(
-    blankToNull,
-    z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/, 'Enter a valid phone number.').nullable().optional(),
-  ),
+  phone: z.preprocess(blankToNull, phoneField.nullable().optional()),
   email: z.preprocess(blankToNull, z.string().trim().toLowerCase().email('Enter a valid email address.').nullable().optional()),
   side: z.enum(SIDES, { message: 'Side must be bride, groom or both.' }).optional(),
   groupTag: z.enum(GROUPS, { message: 'Group must be family, friends, colleagues or other.' }).optional(),
@@ -30,6 +39,7 @@ const fields = {
     .max(MAX_PLUS_ONES, `Use at most ${MAX_PLUS_ONES}.`)
     .optional(),
   accommodationNeeded: z.boolean().optional(),
+  photoAccess: z.enum(PHOTO_ACCESS, { message: 'Photo access must be none, view or upload.' }).optional(),
   travelNotes: optionalText(500),
   notes: optionalText(1000),
 };
@@ -71,4 +81,9 @@ export const deleteGuestsSchema = z.object({
     .array(z.string().refine((v) => mongoose.isValidObjectId(v), 'Unknown guest.'))
     .min(1, 'Choose at least one guest.')
     .max(2000, 'Delete at most 2000 guests at a time.'),
+});
+
+export const photoAccessSchema = z.object({
+  ids: z.array(z.string().refine((v) => mongoose.isValidObjectId(v), 'Unknown guest.')).min(1, 'Choose at least one guest.').max(2000),
+  photoAccess: z.enum(PHOTO_ACCESS, { message: 'Photo access must be none, view or upload.' }),
 });

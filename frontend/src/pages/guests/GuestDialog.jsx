@@ -4,7 +4,7 @@ import CopyLink from '../../components/CopyLink.jsx';
 import Field from '../../components/Field.jsx';
 import { useWedding } from '../../layout/WeddingContext.js';
 import { formatDayShort } from '../../lib/format.js';
-import { GROUPS, MEALS, SIDES } from './guestLabels.js';
+import { GROUPS, MEALS, PHOTO_ACCESS, SIDES } from './guestLabels.js';
 
 const blank = {
   name: '',
@@ -15,6 +15,7 @@ const blank = {
   invitedFunctions: [],
   plusOnesAllowed: '0',
   accommodationNeeded: false,
+  photoAccess: 'none',
   travelNotes: '',
   notes: '',
 };
@@ -28,6 +29,7 @@ const toForm = (g) => ({
   invitedFunctions: g.invitedFunctions.map((f) => String(f._id)),
   plusOnesAllowed: String(g.plusOnesAllowed),
   accommodationNeeded: g.accommodationNeeded,
+  photoAccess: g.photoAccess ?? 'none',
   travelNotes: g.travelNotes ?? '',
   notes: g.notes ?? '',
 });
@@ -155,7 +157,7 @@ export default function GuestDialog({ guestId, functions, canEdit, onClose, onCh
               <fieldset className="plain" disabled={!canEdit || busy}>
                 <Field id="g-name" label="Name" placeholder="Priya Mehta" value={form.name} onChange={set('name')} error={fields.name} autoFocus={!guest} />
                 <div className="grid-2">
-                  <Field id="g-phone" label="Phone (optional)" type="tel" placeholder="+91 98765 43210" value={form.phone} onChange={set('phone')} error={fields.phone} />
+                  <Field id="g-phone" label="Phone (optional)" type="tel" placeholder="+91 98765 43210" value={form.phone} onChange={set('phone')} error={fields.phone} hint="10-digit mobile, or with country code. Saved as +91…" />
                   <Field id="g-email" label="Email (optional)" type="email" placeholder="priya@email.com" value={form.email} onChange={set('email')} error={fields.email} />
                 </div>
                 <div className="grid-2">
@@ -217,6 +219,21 @@ export default function GuestDialog({ guestId, functions, canEdit, onClose, onCh
                       <span>Needs accommodation</span>
                     </label>
                   </div>
+                </div>
+                <div className="field">
+                  <label htmlFor="g-photos">Wedding photos</label>
+                  <select id="g-photos" value={form.photoAccess} onChange={set('photoAccess')} aria-describedby="g-photos-hint">
+                    {PHOTO_ACCESS.map(([v, label]) => (
+                      <option key={v} value={v}>{label}</option>
+                    ))}
+                  </select>
+                  <p id="g-photos-hint" className="field-hint">
+                    {form.photoAccess === 'none'
+                      ? 'They won’t see photos on their invitation.'
+                      : form.email
+                        ? `They sign in with ${form.email} to ${form.photoAccess === 'upload' ? 'see and add' : 'see'} photos.`
+                        : 'Add their email above: guests sign in with it to see photos.'}
+                  </p>
                 </div>
                 <Field id="g-travel" label="Travel notes (optional)" placeholder="Arriving 23 Oct by train" value={form.travelNotes} onChange={set('travelNotes')} error={fields.travelNotes} />
                 <div className="field">

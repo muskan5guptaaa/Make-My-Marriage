@@ -71,6 +71,8 @@ export const api = {
   getGuest: (weddingId, guestId) => request(`/weddings/${weddingId}/guests/${guestId}`),
   createGuest: (weddingId, body) => request(`/weddings/${weddingId}/guests`, { method: 'POST', body }),
   updateGuest: (weddingId, guestId, body) => request(`/weddings/${weddingId}/guests/${guestId}`, { method: 'PATCH', body }),
+  setGuestPhotoAccess: (weddingId, ids, photoAccess) =>
+    request(`/weddings/${weddingId}/guests/photo-access`, { method: 'POST', body: { ids, photoAccess } }),
   deleteGuests: (weddingId, ids) => request(`/weddings/${weddingId}/guests/delete`, { method: 'POST', body: { ids } }),
   deleteGuest: (weddingId, guestId) => request(`/weddings/${weddingId}/guests/${guestId}`, { method: 'DELETE' }),
   setRsvp: (weddingId, guestId, functionId, body) =>
@@ -81,6 +83,19 @@ export const api = {
   sendGuestInvitation: (weddingId, guestId) => request(`/weddings/${weddingId}/guests/${guestId}/send-invitation`, { method: 'POST' }),
   // body: { audience: 'not-sent' | 'pending', dryRun?: true }
   sendGuestInvitations: (weddingId, body) => request(`/weddings/${weddingId}/guests/send-invitations`, { method: 'POST', body }),
+  listAlbums: (weddingId) => request(`/weddings/${weddingId}/albums`),
+  createAlbum: (weddingId, name) => request(`/weddings/${weddingId}/albums`, { method: 'POST', body: { name } }),
+  updateAlbum: (weddingId, albumId, body) => request(`/weddings/${weddingId}/albums/${albumId}`, { method: 'PATCH', body }),
+  deleteAlbum: (weddingId, albumId) => request(`/weddings/${weddingId}/albums/${albumId}`, { method: 'DELETE' }),
+  listPhotos: (weddingId, albumId) => request(`/weddings/${weddingId}/albums/${albumId}/photos`),
+  signPhoto: (weddingId, albumId) => request(`/weddings/${weddingId}/albums/${albumId}/photos/sign`, { method: 'POST' }),
+  completePhoto: (weddingId, photoId) => request(`/weddings/${weddingId}/photos/${photoId}/complete`, { method: 'POST' }),
+  updatePhoto: (weddingId, photoId, body) => request(`/weddings/${weddingId}/photos/${photoId}`, { method: 'PATCH', body }),
+  deletePhoto: (weddingId, photoId) => request(`/weddings/${weddingId}/photos/${photoId}`, { method: 'DELETE' }),
+  portalAlbums: (token) => request(`/portal/${encodeURIComponent(token)}/albums`),
+  portalPhotos: (token, albumId) => request(`/portal/${encodeURIComponent(token)}/albums/${albumId}/photos`),
+  portalSignPhoto: (token, albumId) => request(`/portal/${encodeURIComponent(token)}/albums/${albumId}/photos/sign`, { method: 'POST' }),
+  portalCompletePhoto: (token, photoId) => request(`/portal/${encodeURIComponent(token)}/photos/${photoId}/complete`, { method: 'POST' }),
   getPortal: (token) => request(`/portal/${encodeURIComponent(token)}`),
   answerPortalRsvp: (token, functionId, body) =>
     request(`/portal/${encodeURIComponent(token)}/rsvps/${functionId}`, { method: 'PUT', body }),

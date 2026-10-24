@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
+import { formatPhone } from '../../lib/format.js';
 import { useWedding } from '../../layout/WeddingContext.js';
 import GuestDialog from './GuestDialog.jsx';
-import { RSVP, SIDES, sideName } from './guestLabels.js';
+import { PHOTO_ACCESS, RSVP, SIDES, photoAccessShort, sideName } from './guestLabels.js';
 import EmailInvitesDialog from './EmailInvitesDialog.jsx';
 import ImportDialog from './ImportDialog.jsx';
 
@@ -26,6 +27,8 @@ export default function Guests() {
   const [confirmRow, setConfirmRow] = useState(null); // guest id awaiting "Yes"
   const [confirmBulk, setConfirmBulk] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [bulkAccess, setBulkAccess] = useState('view');
+  const [notice, setNotice] = useState('');
   const [importing, setImporting] = useState(false);
   const [emailing, setEmailing] = useState(false);
 
@@ -68,6 +71,21 @@ export default function Guests() {
       else next.add(id);
       return next;
     });
+
+  async function setAccess(ids, photoAccess) {
+    setDeleting(true);
+    setError('');
+    try {
+      const { updated } = await api.setGuestPhotoAccess(wedding._id, ids, photoAccess);
+      setNotice(`Photo access updated for ${updated} guest${updated === 1 ? '' : 's'}.`);
+      setSelected(new Set());
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function removeGuests(ids) {
     setDeleting(true);
@@ -157,6 +175,7 @@ export default function Guests() {
       </div>
 
       {error && <div className="alert" role="alert">{error}</div>}
+      {notice && <div className="notice" role="status" onClick={() => setNotice('')}>{notice}</div>}
 
       {guests === null && !error ? (
         <p className="muted" role="status">Loading guests…</p>
@@ -203,6 +222,15 @@ export default function Guests() {
               ) : (
                 <>
                   <span className="bulk-count">{selectedIds.length} selected</span>
+                  <span className="bulk-access">
+                    <label htmlFor="bulk-access">Photos:</label>
+                    <select id="bulk-access" value={bulkAccess} onChange={(e) => setBulkAccess(e.target.value)}>
+                      {PHOTO_ACCESS.map(([v, label]) => (
+                        <option key={v} value={v}>{label}</option>
+                      ))}
+                    </select>
+                    <button type="button" className="btn btn-outline inline sm" disabled={deleting} onClick={() => setAccess(selectedIds, bulkAccess)}>Apply</button>
+                  </span>
                   <button type="button" className="btn btn-danger-outline inline sm" onClick={() => setConfirmBulk(true)}>
                     Delete selected
                   </button>
@@ -231,6 +259,7 @@ export default function Guests() {
                   <th scope="col">Functions</th>
                   <th scope="col" className="num">Plus-ones</th>
                   <th scope="col">RSVP</th>
+                  <th scope="col">Photos</th>
                   {canEdit && <th scope="col"><span className="sr-only">Actions</span></th>}
                 </tr>
               </thead>
@@ -245,7 +274,7 @@ export default function Guests() {
                     <td>
                       <button type="button" className="row-link" onClick={() => setEditing(g._id)}>
                         <span className="guest-name">{g.name}</span>
-                        {(g.phone || g.email) && <span className="guest-contact">{g.phone ?? g.email}</span>}
+                        {(g.phone || g.email) && <span className="guest-contact">{g.phone ? formatPhone(g.phone) : g.email}</span>}
                       </button>
                     </td>
                     <td className="muted-cell">{sideName(g.side)}</td>
@@ -255,6 +284,10 @@ export default function Guests() {
                     <td className="num mono">{g.plusOnesAllowed}</td>
                     <td>
                       <span className={`rsvp-pill ${g.rsvpStatus}`}>{RSVP[g.rsvpStatus].label}</span>
+                    </td>
+                    <td className="muted-cell" title={g.photoAccess !== 'none' && !g.email ? 'Needs an email to sign in for photos' : undefined}>
+                      {photoAccessShort[g.photoAccess] ?? 'No'}
+                      {g.photoAccess !== 'none' && !g.email && <span className="warn-dot" aria-label="needs an email"> !</span>}
                     </td>
                     {canEdit && (
                       <td className="row-actions-cell">

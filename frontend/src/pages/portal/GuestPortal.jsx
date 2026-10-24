@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../../api.js';
+import { useAuth } from '../../auth/AuthContext.jsx';
 import { coupleName, formatDateRange, formatDay, formatTime } from '../../lib/format.js';
 import { MEALS } from '../guests/guestLabels.js';
+import PortalPhotos from './PortalPhotos.jsx';
 import './portal.css';
 
 // The page a guest opens from their private link (/i/<token>). No account: the link is the
@@ -11,13 +13,14 @@ export default function GuestPortal() {
   const { token } = useParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const { user } = useAuth(); // signing in or out changes what the photos section shows
 
   useEffect(() => {
     api
       .getPortal(token)
       .then(setData)
       .catch((err) => setError(err.message));
-  }, [token]);
+  }, [token, user?._id]);
 
   if (error) {
     return (
@@ -65,6 +68,8 @@ export default function GuestPortal() {
             ))}
           </div>
         )}
+
+        <PortalPhotos token={token} status={data.photos} />
 
         <footer className="gp-foot mono">Sent with Make My Marriage &middot; this link is just for you</footer>
       </main>

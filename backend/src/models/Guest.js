@@ -29,6 +29,9 @@ const guestSchema = new mongoose.Schema(
     travelNotes: { type: String, trim: true },
     notes: { type: String, trim: true },
     invitationSentAt: { type: Date }, // last time their link was emailed to them
+    // Photos need the guest to sign in with the email above; the owner decides how much.
+    photoAccess: { type: String, enum: ['none', 'view', 'upload'], default: 'none' },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // set once they sign in for photos
   },
   { timestamps: true },
 );

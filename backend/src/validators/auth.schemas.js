@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { phoneField } from './guest.schemas.js';
 
 const email = z.string().trim().toLowerCase().email('Enter a valid email address.');
 const password = z
@@ -9,11 +10,7 @@ const password = z
 export const registerSchema = z.object({
   name: z.string().trim().min(1, 'Enter your name.').max(100),
   email,
-  phone: z
-    .string()
-    .trim()
-    .regex(/^\+?[0-9 ()-]{7,20}$/, 'Enter a valid phone number.')
-    .optional(),
+  phone: phoneField.optional(),
   password,
 });
 

@@ -14,6 +14,11 @@ export const env = {
   webAppUrl: process.env.WEB_APP_URL ?? 'http://localhost:5173',
   resendApiKey: process.env.RESEND_API_KEY ?? '',
   emailFrom: process.env.EMAIL_FROM ?? '',
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
+    apiKey: process.env.CLOUDINARY_API_KEY ?? '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
+  },
   smtp: {
     host: process.env.SMTP_HOST ?? '',
     port: Number(process.env.SMTP_PORT ?? 465),

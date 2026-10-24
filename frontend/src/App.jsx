@@ -1,12 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { GuestOnly, RequireAuth } from './auth/guards.jsx';
 import AppShell from './layout/AppShell.jsx';
-import ComingSoon from './pages/ComingSoon.jsx';
 import CreateWedding from './pages/CreateWedding.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Expenses from './pages/expenses/Expenses.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import Functions from './pages/Functions.jsx';
+import Gallery from './pages/gallery/Gallery.jsx';
 import Guests from './pages/guests/Guests.jsx';
 import GuestPortal from './pages/portal/GuestPortal.jsx';
 import Home from './pages/home/Home.jsx';
@@ -46,7 +46,7 @@ export default function App() {
           <Route path="tasks" element={<Tasks />} />
           <Route path="guests" element={<Guests />} />
           <Route path="expenses" element={<Expenses />} />
-          <Route path="gallery" element={<ComingSoon title="Gallery" text="One shared album per function for family and guests." />} />
+          <Route path="gallery" element={<Gallery />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Route>

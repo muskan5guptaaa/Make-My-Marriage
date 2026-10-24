@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [weddings, setWeddings] = useState([]);
   const [invites, setInvites] = useState([]);
+  const [guestOf, setGuestOf] = useState([]); // weddings where I am a guest
   const [ready, setReady] = useState(false);
 
   // Re-reads the user, their weddings and pending invites, e.g. after creating or accepting.
@@ -15,6 +16,7 @@ export function AuthProvider({ children }) {
     setUser(data.user);
     setWeddings(data.weddings);
     setInvites(data.invites ?? []);
+    setGuestOf(data.guestOf ?? []);
   }, []);
 
   // On load, ask the server who the session cookie belongs to.
@@ -29,6 +31,7 @@ export function AuthProvider({ children }) {
       user,
       weddings,
       invites,
+      guestOf,
       ready,
       refresh,
       async register(body) {
@@ -48,9 +51,10 @@ export function AuthProvider({ children }) {
         setUser(null);
         setWeddings([]);
         setInvites([]);
+        setGuestOf([]);
       },
     }),
-    [user, weddings, invites, ready, refresh],
+    [user, weddings, invites, guestOf, ready, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

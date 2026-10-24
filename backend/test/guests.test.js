@@ -240,3 +240,30 @@ describe('bulk delete', () => {
     await post(`${G}/delete`, { ids: ['nope'] }).expect(400);
   });
 });
+
+describe('phone format', () => {
+  it('turns every way of typing an Indian mobile into +91XXXXXXXXXX', async () => {
+    const { normalizePhone } = await import('../src/utils/phone.js');
+    for (const typed of ['8707463461', '87074 63461', '08707463461', '918707463461', '+91 87074-63461', '+91 (870) 746 3461', '00918707463461']) {
+      assert.equal(normalizePhone(typed), '+918707463461', typed);
+    }
+    assert.equal(normalizePhone('+44 7700 900123'), '+447700900123');
+    for (const bad of ['12345', '5707463461', '+91 12345', 'call me', '+1234']) assert.equal(normalizePhone(bad), null, bad);
+  });
+
+  it('stores one format, so the same number matches across guests and searches', async () => {
+    const a = (await post(G, { name: 'Muskan Gupta', phone: '8707463461' }).expect(201)).body.guest;
+    const b = (await post(G, { name: 'Muskan G', phone: '+91 87074 63461' }).expect(201)).body.guest;
+    assert.equal(a.phone, '+918707463461');
+    assert.equal(b.phone, a.phone);
+    assert.deepEqual((await get(`${G}?q=87074 63461`)).body.data.map((g) => g.name), ['Muskan G', 'Muskan Gupta']);
+    const bad = await post(G, { name: 'X', phone: '12345' }).expect(400);
+    assert.match(bad.body.error.fields.phone, /10-digit Indian mobile/);
+  });
+
+  it('CSV import skips a guest already on the list under another spelling of the number', async () => {
+    await post(G, { name: 'Muskan Gupta', phone: '+918707463461' });
+    const res = await post(`${G}/import`, { csv: 'Name,Phone\nMuskan Gupta,08707463461\nAyush,9876543210' }).expect(201);
+    assert.deepEqual(res.body, { created: 1, skipped: 1 });
+  });
+});

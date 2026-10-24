@@ -10,7 +10,7 @@ import { randomToken } from '../utils/tokens.js';
 import { GROUPS, RSVP_STATUSES, SIDES, createGuestSchema } from '../validators/guest.schemas.js';
 
 const guestNotFound = () => notFoundError('guest_not_found', 'This guest is not part of this wedding.');
-const EDITABLE = ['name', 'phone', 'email', 'side', 'groupTag', 'plusOnesAllowed', 'accommodationNeeded', 'travelNotes', 'notes'];
+const EDITABLE = ['name', 'phone', 'email', 'side', 'groupTag', 'plusOnesAllowed', 'accommodationNeeded', 'travelNotes', 'notes', 'photoAccess'];
 
 export const linkUrl = (token) => `${env.webAppUrl}/i/${token}`;
 
@@ -57,6 +57,7 @@ function toGuest(g, fns, link) {
     rsvpStatus: overallStatus(g),
     heads: headsOf(g),
     invitationSentAt: g.invitationSentAt ?? null,
+    photoAccess: g.photoAccess,
     createdAt: g.createdAt,
     updatedAt: g.updatedAt,
   };
@@ -147,6 +148,8 @@ export async function listGuests(req, res) {
   ]);
 
   const needle = q?.trim().toLowerCase();
+  // "87074 63461" or "08707463461" still finds +918707463461.
+  const needleDigits = needle && /^[+\d\s()-]+$/.test(needle) ? needle.replace(/\D/g, '').replace(/^0+/, '') : '';
   const filtered = all.filter((g) => {
     if (side && g.side !== side) return false;
     if (groupTag && g.groupTag !== groupTag) return false;
@@ -155,7 +158,8 @@ export async function listGuests(req, res) {
       const status = fnId ? g.rsvps.find((r) => String(r.function) === fnId)?.status : overallStatus(g);
       if (status !== rsvp) return false;
     }
-    if (needle && ![g.name, g.email, g.phone].some((v) => v?.toLowerCase().includes(needle))) return false;
+    const textMatch = [g.name, g.email, g.phone].some((v) => v?.toLowerCase().includes(needle));
+    if (needle && !textMatch && !(needleDigits && g.phone?.includes(needleDigits))) return false;
     return true;
   });
 
@@ -481,4 +485,24 @@ export async function deleteGuests(req, res) {
     deleted = (await Guest.deleteMany({ _id: { $in: own } }, { session })).deletedCount;
   });
   res.json({ deleted });
+}
+
+// Set photo access for several guests at once. Ids from another wedding are ignored.
+export async function setPhotoAccess(req, res) {
+  const result = await Guest.updateMany(
+    { _id: { $in: req.body.ids }, wedding: req.wedding._id },
+    { $set: { photoAccess: req.body.photoAccess } },
+  );
+  res.json({ updated: result.modifiedCount });
+}
+
+// Weddings where this account's email is on the guest list (with a working link), so a
+// guest who signs in can get back to their invitation. Only the couple's names and the link.
+export async function guestInvitationsFor(user) {
+  const guests = await Guest.find({ email: user.email }).select('wedding');
+  if (guests.length === 0) return [];
+  const links = await GuestLink.find({ guest: { $in: guests.map((g) => g._id) }, revokedAt: null }).populate('wedding', 'brideName groomName status');
+  return links
+    .filter((l) => l.wedding?.status === 'active')
+    .map((l) => ({ wedding: { brideName: l.wedding.brideName, groomName: l.wedding.groomName }, path: `/i/${l.token}` }));
 }
