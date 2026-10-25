@@ -155,6 +155,7 @@ describe('update and delete', () => {
 describe('integrity', () => {
   it('deleting a function keeps its tasks, without the function', async () => {
     const t = (await as(aisha.cookie).post(base, { title: 'Confirm DJ', function: sangeet._id })).body.task;
+    await as(aisha.cookie).post(`/weddings/${wedding._id}/functions/${sangeet._id}/archive`).expect(200);
     await as(aisha.cookie).del(`/weddings/${wedding._id}/functions/${sangeet._id}`).expect(204);
     const after = await as(aisha.cookie).get(`${base}/${t._id}`).expect(200);
     assert.equal(after.body.task.function, null);

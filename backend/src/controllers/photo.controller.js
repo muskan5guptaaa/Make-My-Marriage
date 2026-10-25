@@ -196,13 +196,19 @@ export async function deletePhoto(req, res) {
 
 // ---- guest portal ----
 
-export const guestAlbums = (wedding, guest) =>
-  albumList(wedding, { forPlanner: false, functionIds: new Set(guest.invitedFunctions.map(String)) });
+// Albums of archived functions are hidden from guests until the function is restored.
+async function guestFunctionIds(wedding, guest) {
+  const active = await WeddingFunction.find({ _id: { $in: guest.invitedFunctions }, wedding: wedding._id, archivedAt: null }).select('_id');
+  return new Set(active.map((f) => String(f._id)));
+}
+
+export const guestAlbums = async (wedding, guest) =>
+  albumList(wedding, { forPlanner: false, functionIds: await guestFunctionIds(wedding, guest) });
 
 // A guest may see an album for a function they're invited to, or a general album.
 export async function guestAlbum(wedding, guest, albumId) {
   const album = await loadAlbum(wedding._id, albumId);
-  if (album.function && !guest.invitedFunctions.some((id) => String(id) === String(album.function))) throw albumNotFound();
+  if (album.function && !(await guestFunctionIds(wedding, guest)).has(String(album.function))) throw albumNotFound();
   return album;
 }
 

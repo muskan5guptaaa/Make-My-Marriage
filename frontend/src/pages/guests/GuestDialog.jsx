@@ -149,7 +149,7 @@ export default function GuestDialog({ guestId, functions, canEdit, onClose, onCh
                 }}
               />
             )}
-            {guest && guest.rsvps.length > 0 && <RsvpSection guest={guest} canEdit={canEdit} onSaved={(g) => { setGuest(g); onChanged(); }} />}
+            {guest && guest.rsvps.some((r) => !r.function.archived) && <RsvpSection guest={guest} canEdit={canEdit} onSaved={(g) => { setGuest(g); onChanged(); }} />}
 
             <form id="guest-form" onSubmit={onSubmit} noValidate>
               <h3 className="section-title">{guest ? 'Details' : 'Who'}</h3>
@@ -387,7 +387,7 @@ function RsvpSection({ guest, canEdit, onSaved }) {
       <h3 className="section-title">RSVP</h3>
       <p className="muted small">Guests answer on their link. Record an answer here if they told you directly.</p>
       <ul className="rsvp-rows">
-        {guest.rsvps.map((r) => (
+        {guest.rsvps.filter((r) => !r.function.archived).map((r) => (
           <RsvpRow key={r.function._id} guest={guest} rsvp={r} canEdit={canEdit} onSaved={onSaved} />
         ))}
       </ul>

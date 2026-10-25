@@ -152,7 +152,7 @@ const inviteState = (member) =>
 // and whether that email already has an account (so the page offers Sign in or Create account).
 export async function getInviteByToken(req, res) {
   const { member, wedding } = await findByToken(req.params.token);
-  const functions = await WeddingFunction.find({ wedding: wedding._id }).sort({ startsAt: 1 }).select('name localDate startTime venue');
+  const functions = await WeddingFunction.find({ wedding: wedding._id, archivedAt: null }).sort({ startsAt: 1 }).select('name localDate startTime venue');
   res.json({
     invite: {
       status: inviteState(member),

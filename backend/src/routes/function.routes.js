@@ -15,4 +15,6 @@ functionRouter.get(F, ...member, functions.listFunctions);
 functionRouter.post(F, ...member, requireActive, validateBody(createFunctionSchema), functions.createFunction);
 functionRouter.get(`${F}/:functionId`, ...member, functions.getFunction);
 functionRouter.patch(`${F}/:functionId`, ...member, requireActive, validateBody(updateFunctionSchema), functions.updateFunction);
+functionRouter.post(`${F}/:functionId/archive`, ...member, requireActive, functions.archiveFunction);
+functionRouter.post(`${F}/:functionId/restore`, ...member, requireActive, functions.restoreFunction);
 functionRouter.delete(`${F}/:functionId`, ...member, requireActive, functions.deleteFunction);

@@ -19,6 +19,9 @@ const functionSchema = new mongoose.Schema(
     order: { type: Number, default: 0 },
     livestreamUrl: { type: String },
     livestreamVideoId: { type: String },
+    // Archived functions are hidden everywhere but keep their guests' answers, tasks, expenses
+    // and photos, so restoring brings everything back. Only archived ones can be deleted.
+    archivedAt: { type: Date },
   },
   { timestamps: true },
 );

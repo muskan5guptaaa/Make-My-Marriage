@@ -26,7 +26,7 @@ async function resolve(token) {
 }
 
 async function view(guest, wedding, user) {
-  const invited = await WeddingFunction.find({ _id: { $in: guest.invitedFunctions }, wedding: wedding._id }).sort({ startsAt: 1 });
+  const invited = await WeddingFunction.find({ _id: { $in: guest.invitedFunctions }, wedding: wedding._id, archivedAt: null }).sort({ startsAt: 1 });
   const answers = new Map(guest.rsvps.map((r) => [String(r.function), r]));
   return {
     wedding: {

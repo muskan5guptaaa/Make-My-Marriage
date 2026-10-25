@@ -9,7 +9,7 @@ const KEYS = ['name', 'localDate', 'startTime', 'venue', 'address', 'dressCode',
 const toForm = (fn) => Object.fromEntries(KEYS.map((k) => [k, fn?.[k] ?? '']));
 
 // Add or edit one function, in a modal. `fn` is null when adding.
-export default function FunctionDialog({ fn, existingNames, onClose, onSaved, onDeleted }) {
+export default function FunctionDialog({ fn, existingNames, onClose, onSaved, onArchived }) {
   const { wedding } = useWedding();
   const dialog = useRef(null);
   const initial = toForm(fn);
@@ -17,7 +17,7 @@ export default function FunctionDialog({ fn, existingNames, onClose, onSaved, on
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [fields, setFields] = useState({});
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
 
   useEffect(() => {
     dialog.current?.showModal();
@@ -48,12 +48,13 @@ export default function FunctionDialog({ fn, existingNames, onClose, onSaved, on
     }
   }
 
-  async function onDelete() {
+  // Archiving hides the function but keeps guests' answers, tasks, expenses and photos.
+  async function onArchive() {
     setBusy(true);
     setError('');
     try {
-      await api.deleteFunction(wedding._id, fn._id);
-      onDeleted();
+      await api.archiveFunction(wedding._id, fn._id);
+      onArchived();
     } catch (err) {
       setError(err.message);
       setBusy(false);
@@ -133,14 +134,14 @@ export default function FunctionDialog({ fn, existingNames, onClose, onSaved, on
 
         <div className="modal-foot">
           {fn &&
-            (confirmDelete ? (
+            (confirmArchive ? (
               <span className="confirm">
-                <span>Delete {fn.name}?</span>
-                <button type="button" className="btn btn-danger inline sm" disabled={busy} onClick={onDelete}>Yes, delete</button>
-                <button type="button" className="btn btn-outline inline sm" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep</button>
+                <span>Archive {fn.name}? It leaves the timeline and guest pages. You can restore it any time.</span>
+                <button type="button" className="btn btn-danger inline sm" disabled={busy} onClick={onArchive}>Yes, archive</button>
+                <button type="button" className="btn btn-outline inline sm" disabled={busy} onClick={() => setConfirmArchive(false)}>Keep</button>
               </span>
             ) : (
-              <button type="button" className="link-button small danger" onClick={() => setConfirmDelete(true)}>Delete function</button>
+              <button type="button" className="link-button small danger" onClick={() => setConfirmArchive(true)}>Archive function</button>
             ))}
           <span className="modal-actions">
             <button type="button" className="btn btn-outline inline" onClick={onClose}>Cancel</button>

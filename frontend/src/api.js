@@ -47,7 +47,11 @@ export const api = {
   changeMemberRole: (weddingId, memberId, role) =>
     request(`/weddings/${weddingId}/members/${memberId}`, { method: 'PATCH', body: { role } }),
   removeMember: (weddingId, memberId) => request(`/weddings/${weddingId}/members/${memberId}`, { method: 'DELETE' }),
-  listFunctions: (weddingId) => request(`/weddings/${weddingId}/functions`),
+  // { includeArchived: true } also returns archived functions (status "archived").
+  listFunctions: (weddingId, { includeArchived = false } = {}) =>
+    request(`/weddings/${weddingId}/functions${includeArchived ? '?include=archived' : ''}`),
+  archiveFunction: (weddingId, functionId) => request(`/weddings/${weddingId}/functions/${functionId}/archive`, { method: 'POST' }),
+  restoreFunction: (weddingId, functionId) => request(`/weddings/${weddingId}/functions/${functionId}/restore`, { method: 'POST' }),
   createFunction: (weddingId, body) => request(`/weddings/${weddingId}/functions`, { method: 'POST', body }),
   updateFunction: (weddingId, functionId, body) =>
     request(`/weddings/${weddingId}/functions/${functionId}`, { method: 'PATCH', body }),

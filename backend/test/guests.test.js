@@ -156,6 +156,7 @@ describe('RSVPs and edits', () => {
 
   it('deleting a function removes it from guests', async () => {
     const g = (await post(G, priya())).body.guest;
+    await post(`${W}/functions/${sangeet._id}/archive`).expect(200);
     await del(`${W}/functions/${sangeet._id}`).expect(204);
     const after = (await get(`${G}/${g._id}`).expect(200)).body.guest;
     assert.deepEqual(after.invitedFunctions.map((f) => f.name), ['Reception']);

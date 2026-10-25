@@ -75,6 +75,7 @@ describe('albums', () => {
   it('deleting a function keeps its album and photos as a general album', async () => {
     const s = (await albums())[0];
     await upload(s._id);
+    await post(`${W}/functions/${sangeet._id}/archive`).expect(200);
     await del(`${W}/functions/${sangeet._id}`).expect(204);
     const after = (await albums()).find((a) => String(a._id) === String(s._id));
     assert.equal(after.function, null);

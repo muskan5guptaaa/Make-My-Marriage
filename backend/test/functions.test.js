@@ -134,6 +134,7 @@ describe('update and delete', () => {
     const other = (await post('/weddings', { brideName: 'Neha', groomName: 'Karan' })).body.wedding;
     await get(`/weddings/${other._id}/functions/${f._id}`).expect(404);
 
+    await post(`${base}/${f._id}/archive`).expect(200);
     await del(`${base}/${f._id}`).expect(204);
     await get(`${base}/${f._id}`).expect(404);
   });
@@ -149,5 +150,66 @@ describe('update and delete', () => {
     await post(base, { name: 'Haldi', localDate: '2026-10-18' });
     await request(app).delete(`/api/v1/weddings/${wedding._id}`).set('Cookie', cookie).send({ confirmSlug: wedding.slug }).expect(204);
     assert.equal(await WeddingFunction.countDocuments({ wedding: wedding._id }), 0);
+  });
+});
+
+describe('archive instead of delete', () => {
+  const dayFromToday2 = (n) => {
+    const [y, m, d] = todayIn('Asia/Kolkata').split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+  };
+
+  it('cannot delete a function until it is archived', async () => {
+    const f = (await post(base, { name: 'Haldi', localDate: '2026-10-18' })).body.function;
+    const res = await del(`${base}/${f._id}`).expect(409);
+    assert.equal(res.body.error.code, 'archive_first');
+    await get(`${base}/${f._id}`).expect(200);
+  });
+
+  it('hides an archived function from the timeline, next, dates and the guest page, and keeps answers', async () => {
+    const sangeet = (await post(base, { name: 'Sangeet', localDate: dayFromToday2(3) })).body.function;
+    const reception = (await post(base, { name: 'Reception', localDate: dayFromToday2(6) })).body.function;
+    const g = (await post(`/weddings/${wedding._id}/guests`, { name: 'Priya', invitedFunctions: [sangeet._id, reception._id] })).body.guest;
+    const token = g.link.url.split('/i/')[1];
+    await request(app).put(`/api/v1/portal/${token}/rsvps/${sangeet._id}`).send({ status: 'yes' }).expect(200);
+    await request(app).put(`/api/v1/portal/${token}/rsvps/${reception._id}`).send({ status: 'yes' }).expect(200);
+
+    const archived = (await post(`${base}/${sangeet._id}/archive`).expect(200)).body.function;
+    assert.equal(archived.status, 'archived');
+    assert.ok(archived.archivedAt);
+
+    const list = (await get(base)).body.data;
+    assert.deepEqual(list.map((x) => [x.name, x.status]), [['Reception', 'next']]);
+    const all = (await get(`${base}?include=archived`)).body.data;
+    assert.deepEqual(all.map((x) => [x.name, x.status]), [['Sangeet', 'archived'], ['Reception', 'next']]);
+    assert.deepEqual((await get(`/weddings/${wedding._id}`)).body.wedding.dateRange, { start: dayFromToday2(6), end: dayFromToday2(6) });
+
+    const portal = (await request(app).get(`/api/v1/portal/${token}`)).body;
+    assert.deepEqual(portal.functions.map((x) => x.name), ['Reception']);
+    await request(app).put(`/api/v1/portal/${token}/rsvps/${sangeet._id}`).send({ status: 'no' }).expect(200); // still on the guest record
+
+    const guest = (await get(`/weddings/${wedding._id}/guests/${g._id}`)).body.guest;
+    assert.equal(guest.rsvps.length, 2, 'the answer is kept for a restore');
+    assert.equal(guest.invitedFunctions.find((x) => x.name === 'Sangeet').archived, true);
+
+    // Restore: back on the timeline as next, on the guest page, with the answer intact.
+    await post(`${base}/${sangeet._id}/restore`).expect(200);
+    assert.deepEqual((await get(base)).body.data.map((x) => [x.name, x.status]), [['Sangeet', 'next'], ['Reception', 'upcoming']]);
+    assert.deepEqual((await request(app).get(`/api/v1/portal/${token}`)).body.functions.map((x) => x.name), ['Sangeet', 'Reception']);
+  });
+
+  it('an unanswered archived function does not keep a guest pending', async () => {
+    const sangeet = (await post(base, { name: 'Sangeet', localDate: '2026-10-24' })).body.function;
+    const reception = (await post(base, { name: 'Reception', localDate: '2026-10-27' })).body.function;
+    const G = `/weddings/${wedding._id}/guests`;
+    const g = (await post(G, { name: 'Priya', invitedFunctions: [sangeet._id, reception._id] })).body.guest;
+    await request(app).patch(`/api/v1${G}/${g._id}/rsvps/${reception._id}`).set('Cookie', cookie).send({ status: 'yes' });
+    assert.equal((await get(`${G}/${g._id}`)).body.guest.rsvpStatus, 'pending');
+
+    await post(`${base}/${sangeet._id}/archive`);
+    assert.equal((await get(`${G}/${g._id}`)).body.guest.rsvpStatus, 'yes');
+    const summary = (await get(`/weddings/${wedding._id}/rsvps/summary`)).body;
+    assert.deepEqual(summary.functions.map((x) => x.function.name), ['Reception']);
+    assert.equal(summary.overall.yes, 1);
   });
 });

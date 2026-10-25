@@ -279,7 +279,9 @@ export default function Guests() {
                     </td>
                     <td className="muted-cell">{sideName(g.side)}</td>
                     <td className="muted-cell">
-                      {g.invitedFunctions.length ? g.invitedFunctions.map((f) => f.name).join(', ') : '—'}
+                      {g.invitedFunctions.some((f) => !f.archived)
+                        ? g.invitedFunctions.filter((f) => !f.archived).map((f) => f.name).join(', ')
+                        : '—'}
                     </td>
                     <td className="num mono">{g.plusOnesAllowed}</td>
                     <td>

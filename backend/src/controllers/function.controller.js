@@ -5,7 +5,7 @@ import { Guest } from '../models/Guest.js';
 import { Album } from '../models/Photo.js';
 import { Task } from '../models/Task.js';
 import { invitedCounts } from './guest.controller.js';
-import { notFoundError } from '../utils/AppError.js';
+import { AppError, notFoundError } from '../utils/AppError.js';
 import { daysBetween, todayIn, youtubeVideoId, zonedToUtc } from '../utils/time.js';
 
 const functionNotFound = () => notFoundError('function_not_found', 'This function is not part of this wedding.');
@@ -29,19 +29,23 @@ function toFunction(f) {
     order: f.order,
     livestreamUrl: f.livestreamUrl ?? null,
     livestreamVideoId: f.livestreamVideoId ?? null,
+    archivedAt: f.archivedAt ?? null,
     createdAt: f.createdAt,
     updatedAt: f.updatedAt,
   };
 }
 
 // Timeline order with status: a function is done once its day has passed in the wedding's
-// timezone; the first one not done is "next"; the rest are "upcoming".
-export async function functionsWithStatus(wedding) {
-  const list = await WeddingFunction.find({ wedding: wedding._id }).sort({ startsAt: 1, order: 1, createdAt: 1 });
+// timezone; the first one not done is "next"; the rest are "upcoming". Archived functions are
+// left out unless asked for, and then have the status "archived" and never count as next.
+export async function functionsWithStatus(wedding, { includeArchived = false } = {}) {
+  const filter = { wedding: wedding._id, ...(includeArchived ? {} : { archivedAt: null }) };
+  const list = await WeddingFunction.find(filter).sort({ startsAt: 1, order: 1, createdAt: 1 });
   const today = todayIn(wedding.timezone);
   const counts = await invitedCounts(wedding._id);
   let nextGiven = false;
   return list.map((f) => {
+    if (f.archivedAt) return { ...toFunction(f), status: 'archived', daysLeft: null, invitedCount: counts.get(String(f._id)) ?? 0 };
     const done = f.localDate < today;
     let status = 'done';
     if (!done) {
@@ -57,10 +61,11 @@ export async function functionsWithStatus(wedding) {
   });
 }
 
-// First and last function date, shown as the wedding's dates.
+// First and last date of the active functions, shown as the wedding's dates.
 export async function weddingDateRange(weddingId) {
-  const [first] = await WeddingFunction.find({ wedding: weddingId }).sort({ localDate: 1 }).limit(1).select('localDate');
-  const [last] = await WeddingFunction.find({ wedding: weddingId }).sort({ localDate: -1 }).limit(1).select('localDate');
+  const active = { wedding: weddingId, archivedAt: null };
+  const [first] = await WeddingFunction.find(active).sort({ localDate: 1 }).limit(1).select('localDate');
+  const [last] = await WeddingFunction.find(active).sort({ localDate: -1 }).limit(1).select('localDate');
   return first ? { start: first.localDate, end: last.localDate } : null;
 }
 
@@ -81,10 +86,30 @@ async function loadFunction(req) {
   return fn;
 }
 
-const withStatus = async (wedding, id) => (await functionsWithStatus(wedding)).find((f) => String(f._id) === String(id));
+const withStatus = async (wedding, id) =>
+  (await functionsWithStatus(wedding, { includeArchived: true })).find((f) => String(f._id) === String(id));
 
+// ?include=archived also returns archived functions (status "archived"), for the Archived section.
 export async function listFunctions(req, res) {
-  res.json({ data: await functionsWithStatus(req.wedding) });
+  res.json({ data: await functionsWithStatus(req.wedding, { includeArchived: req.query.include === 'archived' }) });
+}
+
+export async function archiveFunction(req, res) {
+  const fn = await loadFunction(req);
+  if (!fn.archivedAt) {
+    fn.archivedAt = new Date();
+    await fn.save();
+  }
+  res.json({ function: await withStatus(req.wedding, fn._id) });
+}
+
+export async function restoreFunction(req, res) {
+  const fn = await loadFunction(req);
+  if (fn.archivedAt) {
+    fn.archivedAt = undefined;
+    await fn.save();
+  }
+  res.json({ function: await withStatus(req.wedding, fn._id) });
 }
 
 export async function getFunction(req, res) {
@@ -106,10 +131,14 @@ export async function updateFunction(req, res) {
   res.json({ function: await withStatus(req.wedding, fn._id) });
 }
 
-// Tasks and expenses keep existing without a function, and guests lose the invitation and its
-// answer. Its photo album stays, as a general album.
+// Permanent, and only for archived functions, so nothing goes by accident. Tasks and expenses
+// keep existing without a function, guests lose the invitation and its answer, and its photo
+// album stays as a general album.
 export async function deleteFunction(req, res) {
   const fn = await loadFunction(req);
+  if (!fn.archivedAt) {
+    throw new AppError(409, 'archive_first', 'Archive this function first. Archived functions can be restored; deleting is permanent.');
+  }
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {

@@ -143,6 +143,7 @@ describe('summary', () => {
 describe('integrity', () => {
   it('deleting a function keeps its expenses; deleting the wedding removes everything', async () => {
     const e = (await post(`${W}/expenses`, { vendorName: 'DJ Beats', category: cats.Music, function: sangeet._id, budgetedAmountPaise: 100 })).body.expense;
+    await post(`${W}/functions/${sangeet._id}/archive`).expect(200);
     await del(`${W}/functions/${sangeet._id}`).expect(204);
     assert.equal((await get(`${W}/expenses/${e._id}`)).body.expense.function, null);
 

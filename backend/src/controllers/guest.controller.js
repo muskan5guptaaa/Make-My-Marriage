@@ -14,26 +14,36 @@ const EDITABLE = ['name', 'phone', 'email', 'side', 'groupTag', 'plusOnesAllowed
 
 export const linkUrl = (token) => `${env.webAppUrl}/i/${token}`;
 
+// Answers for functions that aren't archived. Archived ones keep their answers for a restore,
+// but don't count until then. `archived` is a Set of function ids.
+const NONE = new Set();
+const liveRsvps = (guest, archived = NONE) => guest.rsvps.filter((r) => !archived.has(String(r.function)));
+
 // One status per guest, for the RSVP column and the dashboard totals:
 // not-invited (no functions) · pending (any function unanswered) · yes (at least one yes) · no (said no to all).
-export function overallStatus(guest) {
-  if (guest.rsvps.length === 0) return 'not-invited';
-  if (guest.rsvps.some((r) => r.status === 'pending')) return 'pending';
-  return guest.rsvps.some((r) => r.status === 'yes') ? 'yes' : 'no';
+export function overallStatus(guest, archived = NONE) {
+  const rsvps = liveRsvps(guest, archived);
+  if (rsvps.length === 0) return 'not-invited';
+  if (rsvps.some((r) => r.status === 'pending')) return 'pending';
+  return rsvps.some((r) => r.status === 'yes') ? 'yes' : 'no';
 }
 
 // People coming: each yes counts the guest plus the plus-ones they bring.
-const headsOf = (guest) => guest.rsvps.reduce((n, r) => (r.status === 'yes' ? n + 1 + r.plusOnes : n), 0);
+const headsOf = (guest, archived = NONE) =>
+  liveRsvps(guest, archived).reduce((n, r) => (r.status === 'yes' ? n + 1 + r.plusOnes : n), 0);
+
+const archivedIn = (fns) => new Set([...fns.values()].filter((f) => f.archivedAt).map((f) => String(f._id)));
 
 async function functionNames(weddingId) {
-  const list = await WeddingFunction.find({ wedding: weddingId }).sort({ startsAt: 1 }).select('name localDate startTime venue');
+  const list = await WeddingFunction.find({ wedding: weddingId }).sort({ startsAt: 1 }).select('name localDate startTime venue archivedAt');
   return new Map(list.map((f) => [String(f._id), f]));
 }
 
 const toLink = (link) => (link ? { url: linkUrl(link.token), lastUsedAt: link.lastUsedAt ?? null, createdAt: link.createdAt } : null);
 
 function toGuest(g, fns, link) {
-  const fn = (id) => ({ _id: id, name: fns.get(String(id))?.name ?? 'Deleted function' });
+  const archived = archivedIn(fns);
+  const fn = (id) => ({ _id: id, name: fns.get(String(id))?.name ?? 'Deleted function', archived: archived.has(String(id)) });
   const out = {
     _id: g._id,
     name: g.name,
@@ -54,8 +64,8 @@ function toGuest(g, fns, link) {
       note: r.note ?? null,
       respondedAt: r.respondedAt ?? null,
     })),
-    rsvpStatus: overallStatus(g),
-    heads: headsOf(g),
+    rsvpStatus: overallStatus(g, archived),
+    heads: headsOf(g, archived),
     invitationSentAt: g.invitationSentAt ?? null,
     photoAccess: g.photoAccess,
     createdAt: g.createdAt,
@@ -120,14 +130,14 @@ async function inTransaction(work) {
 
 // ---- list and summary ----
 
-function summarize(guests) {
+function summarize(guests, archived = NONE) {
   const s = { total: guests.length, invited: 0, yes: 0, no: 0, pending: 0, heads: 0 };
   for (const g of guests) {
-    const status = overallStatus(g);
+    const status = overallStatus(g, archived);
     if (status === 'not-invited') continue;
     s.invited++;
     s[status]++;
-    s.heads += headsOf(g);
+    s.heads += headsOf(g, archived);
   }
   return s;
 }
@@ -147,6 +157,7 @@ export async function listGuests(req, res) {
     functionNames(req.wedding._id),
   ]);
 
+  const archived = archivedIn(fns);
   const needle = q?.trim().toLowerCase();
   // "87074 63461" or "08707463461" still finds +918707463461.
   const needleDigits = needle && /^[+\d\s()-]+$/.test(needle) ? needle.replace(/\D/g, '').replace(/^0+/, '') : '';
@@ -155,7 +166,7 @@ export async function listGuests(req, res) {
     if (groupTag && g.groupTag !== groupTag) return false;
     if (fnId && !g.invitedFunctions.some((id) => String(id) === fnId)) return false;
     if (rsvp) {
-      const status = fnId ? g.rsvps.find((r) => String(r.function) === fnId)?.status : overallStatus(g);
+      const status = fnId ? g.rsvps.find((r) => String(r.function) === fnId)?.status : overallStatus(g, archived);
       if (status !== rsvp) return false;
     }
     const textMatch = [g.name, g.email, g.phone].some((v) => v?.toLowerCase().includes(needle));
@@ -163,7 +174,7 @@ export async function listGuests(req, res) {
     return true;
   });
 
-  res.json({ data: filtered.map((g) => toGuest(g, fns)), meta: { matching: filtered.length, summary: summarize(all) } });
+  res.json({ data: filtered.map((g) => toGuest(g, fns)), meta: { matching: filtered.length, summary: summarize(all, archived) } });
 }
 
 // Per function: how many guests are invited to each. Used for Functions' invitedCount.
@@ -180,10 +191,11 @@ export async function invitedCounts(weddingId) {
 export async function rsvpSummary(req, res) {
   const [guests, fnList] = await Promise.all([
     Guest.find({ wedding: req.wedding._id }),
-    WeddingFunction.find({ wedding: req.wedding._id }).sort({ startsAt: 1 }).select('name localDate'),
+    WeddingFunction.find({ wedding: req.wedding._id }).sort({ startsAt: 1 }).select('name localDate archivedAt'),
   ]);
+  const archived = new Set(fnList.filter((f) => f.archivedAt).map((f) => String(f._id)));
 
-  const functions = fnList.map((f) => {
+  const functions = fnList.filter((f) => !f.archivedAt).map((f) => {
     const row = { function: { _id: f._id, name: f.name, localDate: f.localDate }, invited: 0, yes: 0, no: 0, pending: 0, heads: 0 };
     for (const g of guests) {
       const r = g.rsvps.find((x) => String(x.function) === String(f._id));
@@ -204,12 +216,12 @@ export async function rsvpSummary(req, res) {
     .map((g) => ({
       _id: g._id,
       name: g.name,
-      rsvpStatus: overallStatus(g),
-      functions: g.invitedFunctions.map((id) => fns.get(String(id))?.name).filter(Boolean),
+      rsvpStatus: overallStatus(g, archived),
+      functions: g.invitedFunctions.map((id) => fns.get(String(id))).filter((f) => f && !f.archivedAt).map((f) => f.name),
       respondedAt: new Date(lastAnswer(g)),
     }));
 
-  res.json({ overall: summarize(guests), functions, recent });
+  res.json({ overall: summarize(guests, archived), functions, recent });
 }
 
 // ---- one guest ----
@@ -395,7 +407,7 @@ function invitationEmail(guest, wedding, fns, token) {
   const couple = `${wedding.brideName} & ${wedding.groomName}`;
   const lines = guest.invitedFunctions
     .map((id) => fns.get(String(id)))
-    .filter(Boolean)
+    .filter((f) => f && !f.archivedAt)
     .map((f) => {
       const day = new Date(`${f.localDate}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
       return `  • ${f.name}: ${day}${f.startTime ? `, ${f.startTime}` : ''}${f.venue ? `, ${f.venue}` : ''}`;
@@ -414,7 +426,8 @@ function invitationEmail(guest, wedding, fns, token) {
 // Sends one guest their link and records when. Returns { delivered, reason? }.
 async function emailGuest(guest, wedding, fns) {
   if (!guest.email) return { delivered: false, reason: 'no_email' };
-  if (guest.invitedFunctions.length === 0) return { delivered: false, reason: 'no_functions' };
+  const active = guest.invitedFunctions.filter((id) => fns.get(String(id)) && !fns.get(String(id)).archivedAt);
+  if (active.length === 0) return { delivered: false, reason: 'no_functions' };
   const link = await activeLink(guest._id);
   if (!link) return { delivered: false, reason: 'no_link' };
   try {
@@ -455,14 +468,17 @@ export async function sendInvitations(req, res) {
   const guests = await Guest.find({ wedding: req.wedding._id }).collation({ locale: 'en', strength: 2 }).sort({ name: 1 });
   const links = new Set((await GuestLink.find({ wedding: req.wedding._id, revokedAt: null }).select('guest')).map((l) => String(l.guest)));
 
+  const fns = await functionNames(req.wedding._id);
+  const archived = archivedIn(fns);
   const inAudience = guests.filter((g) =>
-    audience === 'pending' ? overallStatus(g) === 'pending' : overallStatus(g) !== 'not-invited' && !g.invitationSentAt,
+    audience === 'pending'
+      ? overallStatus(g, archived) === 'pending'
+      : overallStatus(g, archived) !== 'not-invited' && !g.invitationSentAt,
   );
   const ready = inAudience.filter((g) => g.email && links.has(String(g._id)));
   const counts = { eligible: ready.length, withoutEmail: inAudience.filter((g) => !g.email).length };
   if (dryRun) return res.json({ ...counts, sent: 0, failed: [] });
 
-  const fns = await functionNames(req.wedding._id);
   let sent = 0;
   const failed = [];
   for (const g of ready) {
