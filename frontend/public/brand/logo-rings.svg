@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Make My Marriage">
+  <rect width="64" height="64" rx="15" fill="#241733"/>
+  <g fill="none">
+    <circle cx="25" cy="32" r="13" stroke="#E0437E" stroke-width="4.6"/>
+    <circle cx="39" cy="32" r="13" stroke="#E0B04A" stroke-width="4.6"/>
+    <!-- interlock: the rose ring passes over the gold one at the lower crossing -->
+    <path d="M34.5 40.9 A13 13 0 0 1 29 44.4" stroke="#241733" stroke-width="8.2" stroke-linecap="butt"/>
+    <path d="M35.7 39.5 A13 13 0 0 1 27.3 44.8" stroke="#E0437E" stroke-width="4.6" stroke-linecap="butt"/>
+  </g>
+</svg>

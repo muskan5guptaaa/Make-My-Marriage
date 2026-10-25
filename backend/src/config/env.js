@@ -19,6 +19,15 @@ export const env = {
     apiKey: process.env.CLOUDINARY_API_KEY ?? '',
     apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
   },
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY ?? '',
+    // Tried in order. The free plan allows each model about 20 requests a day, so when one
+    // runs out the next one answers.
+    models: (process.env.GEMINI_MODELS || 'gemini-2.5-flash-lite,gemini-3.5-flash-lite,gemini-3.5-flash')
+      .split(',')
+      .map((m) => m.trim())
+      .filter(Boolean),
+  },
   smtp: {
     host: process.env.SMTP_HOST ?? '',
     port: Number(process.env.SMTP_PORT ?? 465),

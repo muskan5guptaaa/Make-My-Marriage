@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { GuestOnly, RequireAuth } from './auth/guards.jsx';
 import AppShell from './layout/AppShell.jsx';
+import Ask from './pages/ask/Ask.jsx';
 import CreateWedding from './pages/CreateWedding.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Expenses from './pages/expenses/Expenses.jsx';
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/invites" element={<Invites />} />
         <Route path="/w/:weddingId" element={<AppShell />}>
           <Route index element={<Dashboard />} />
+          <Route path="ask" element={<Ask />} />
           <Route path="functions" element={<Functions />} />
           <Route path="tasks" element={<Tasks />} />
           <Route path="guests" element={<Guests />} />

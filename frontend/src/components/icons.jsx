@@ -4,6 +4,9 @@ const base = { width: 18, height: 18, viewBox: '0 0 18 18', fill: 'none', stroke
 export const DashboardIcon = () => (
   <svg {...base}><rect x="2" y="2" width="6" height="6" rx="1" /><rect x="10" y="2" width="6" height="6" rx="1" /><rect x="2" y="10" width="6" height="6" rx="1" /><rect x="10" y="10" width="6" height="6" rx="1" /></svg>
 );
+export const AskIcon = () => (
+  <svg {...base}><path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5v6a1.5 1.5 0 0 1-1.5 1.5H8l-3.5 3v-3h0A1.5 1.5 0 0 1 3 10.5z" /><line x1="6.5" y1="6.5" x2="11.5" y2="6.5" /><line x1="6.5" y1="9" x2="10" y2="9" /></svg>
+);
 export const FunctionsIcon = () => (
   <svg {...base}><rect x="2" y="3" width="14" height="12" rx="1.5" /><line x1="2" y1="7" x2="16" y2="7" /><line x1="6" y1="2" x2="6" y2="4" /><line x1="12" y1="2" x2="12" y2="4" /></svg>
 );

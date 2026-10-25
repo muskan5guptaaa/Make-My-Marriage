@@ -564,3 +564,25 @@ textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3
 .archived-name { display: flex; flex-direction: column; color: var(--muted); }
 .archived-name b { color: var(--ink); font-weight: 600; }
 .status-pill.archived { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--border); }
+
+/* ---- ask your wedding ---- */
+.ask-thread { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; max-width: 820px; }
+.ask-turn { display: flex; flex-direction: column; gap: 10px; }
+.ask-question { align-self: flex-end; max-width: 80%; margin: 0; background: var(--ink); color: #fff; padding: 10px 14px; border-radius: 14px 14px 4px 14px; font-size: 14.5px; overflow-wrap: anywhere; }
+.ask-answer { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.ask-answer .alert { margin: 0; }
+.answer-text p { margin: 0 0 8px; }
+.answer-text p:last-of-type { margin-bottom: 0; }
+.answer-text ul { margin: 4px 0 8px; padding-left: 20px; }
+.answer-text li { margin: 2px 0; }
+.cite { font: 600 10px var(--mono); color: var(--accent); margin-left: 2px; }
+.typing { display: inline-block; width: 8px; height: 15px; background: var(--accent); vertical-align: text-bottom; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.ask-sources { border-top: 1px solid var(--border); padding-top: 12px; }
+.ask-sources h2 { font: 600 11px var(--body); margin-bottom: 6px; }
+.ask-sources ol { margin: 0; padding-left: 20px; font-size: 13.5px; display: flex; flex-direction: column; gap: 4px; }
+.ask-sources li a { margin-right: 8px; }
+.ask-form { position: sticky; bottom: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; max-width: 820px; box-shadow: 0 6px 24px rgba(36, 23, 51, 0.08); }
+.ask-form textarea { resize: vertical; min-height: 52px; }
+.ask-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ask-actions .muted { flex: 1 1 240px; }

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Make My Marriage">
+  <g fill="none">
+    <circle cx="25" cy="32" r="13" stroke="#C2185B" stroke-width="4.6"/>
+    <circle cx="39" cy="32" r="13" stroke="#B8860B" stroke-width="4.6"/>
+    <path d="M34.5 40.9 A13 13 0 0 1 29 44.4" stroke="#FFF9F3" stroke-width="8.2" stroke-linecap="butt"/>
+    <path d="M35.7 39.5 A13 13 0 0 1 27.3 44.8" stroke="#C2185B" stroke-width="4.6" stroke-linecap="butt"/>
+  </g>
+</svg>

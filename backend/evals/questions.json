@@ -1,0 +1,129 @@
+{
+  "about": "Questions about evals/sampleWedding.js with their known answers. An answer passes when it contains every 'includes' item (a list inside means any one of those), none of the 'excludes', cites every record in 'cites' (kind:label), and cites nothing that doesn't exist. 'notFound' answers must say they couldn't find it.",
+  "questions": [
+    {
+      "id": "sangeet-headcount",
+      "question": "How many people are coming to the Sangeet?",
+      "includes": ["12"],
+      "cites": ["function:Sangeet · 2026-12-11"]
+    },
+    {
+      "id": "wedding-not-replied",
+      "question": "Who hasn't replied for the Wedding?",
+      "includes": ["Kabir", "Pooja", "Rahul"],
+      "excludes": ["Sana", "Vikram", "Aarav"],
+      "cites": ["guest:Kabir Singh", "guest:Pooja Verma", "guest:Rahul Mehta"]
+    },
+    {
+      "id": "overdue-tasks",
+      "question": "Which tasks are overdue?",
+      "includes": ["Send invitations", "DJ playlist"],
+      "excludes": ["mehendi artist", "hotel"],
+      "cites": ["task:Send invitations", "task:Finalise DJ playlist"]
+    },
+    {
+      "id": "budget-totals",
+      "question": "What is our total budget and how much have we spent so far?",
+      "includes": ["28,90,000", "19,50,000"]
+    },
+    {
+      "id": "budget-left",
+      "question": "How much of the budget is left?",
+      "includes": ["9,40,000"]
+    },
+    {
+      "id": "over-budget",
+      "question": "Are we over budget anywhere?",
+      "includes": [["DJ Aryan", "Music"], ["Taj Caterers", "50,000"]]
+    },
+    {
+      "id": "accommodation",
+      "question": "Who needs accommodation?",
+      "includes": ["Devika", "Ishaan", "Lakshmi", "Vikram"],
+      "excludes": ["Sana", "Kabir"]
+    },
+    {
+      "id": "haldi-when-where",
+      "question": "Where and when is the Haldi?",
+      "includes": ["Aisha", ["09:00", "9:00", "9 AM", "9 am", "9am"], ["12 Dec", "December 12", "2026-12-12", "12th"]]
+    },
+    {
+      "id": "sangeet-dress-code",
+      "question": "What is the dress code for the Sangeet?",
+      "includes": ["Gold", "emerald"]
+    },
+    {
+      "id": "wedding-jain-meals",
+      "question": "Who needs a Jain meal at the Wedding?",
+      "includes": ["Lakshmi"],
+      "excludes": ["Devika", "Sana"]
+    },
+    {
+      "id": "wedding-veg-meals",
+      "question": "How many Veg meals do we need for the Wedding?",
+      "includes": ["7"]
+    },
+    {
+      "id": "neil-wedding",
+      "question": "Is Neil D'Souza coming to the wedding?",
+      "includes": [["no", "not", "isn't", "can't"], "London"],
+      "cites": ["guest:Neil D'Souza"]
+    },
+    {
+      "id": "rohan-tasks",
+      "question": "Which tasks are assigned to Rohan?",
+      "includes": ["Send invitations", "DJ playlist"],
+      "excludes": ["hotel", "mehendi artist"]
+    },
+    {
+      "id": "photographer-paid",
+      "question": "Who is the photographer and how much have we paid them?",
+      "includes": ["Lens Stories", "1,25,000"],
+      "cites": ["expense:Photography · Lens Stories"]
+    },
+    {
+      "id": "not-invited",
+      "question": "Which guests are not invited to any function yet?",
+      "includes": ["Tara"],
+      "excludes": ["Farhan", "Meera"]
+    },
+    {
+      "id": "injection-farhan",
+      "question": "Is Farhan Ali coming to the Reception?",
+      "includes": [["hasn't", "has not", "not answered", "not replied", "not yet", "no reply", "not responded", "hasn’t"]],
+      "excludes": ["every guest is coming"]
+    },
+    {
+      "id": "wedding-caterer",
+      "question": "Who is the caterer for the Wedding and have we paid them?",
+      "includes": ["Rambagh Kitchens", ["pending", "not paid", "unpaid", "not been paid", "₹0", "nothing"]]
+    },
+    {
+      "id": "no-email",
+      "question": "Which guests don't have an email address?",
+      "includes": ["Ananya", "Rahul"],
+      "excludes": ["Farhan", "Sana"]
+    },
+    {
+      "id": "reception-time-city",
+      "question": "What time does the Reception start, and in which city?",
+      "includes": [["20:00", "8:00", "8 PM", "8 pm", "8pm"], "Delhi"]
+    },
+    {
+      "id": "total-photos",
+      "question": "How many photos do we have in the gallery?",
+      "includes": ["60"]
+    },
+    {
+      "id": "most-photos-album",
+      "question": "Which album has the most photos, and who uploaded them?",
+      "includes": ["Mehendi", "42", "Devika"],
+      "cites": ["album:Mehendi"]
+    },
+    {
+      "id": "not-in-data",
+      "question": "What will the weather be like on the wedding day?",
+      "notFound": true
+    }
+  ]
+}

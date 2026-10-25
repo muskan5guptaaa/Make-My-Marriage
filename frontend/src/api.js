@@ -27,7 +27,51 @@ async function request(path, { method = 'GET', body } = {}) {
   return data;
 }
 
+// The assistant answers one JSON line at a time: text pieces, then the records it cited.
+// onText(piece) is called as each piece arrives; resolves to the cited records.
+async function askWedding(weddingId, question, { onText, signal } = {}) {
+  let res;
+  try {
+    res = await fetch(`/api/v1/weddings/${weddingId}/ask`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+      signal,
+    });
+  } catch (err) {
+    if (signal?.aborted) throw err;
+    throw new ApiError(0, { code: 'network', message: "Can't reach the server. Check your connection and try again." });
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new ApiError(res.status, data?.error);
+  }
+
+  let sources = [];
+  let buffer = '';
+  const handle = (line) => {
+    if (!line.trim()) return;
+    const event = JSON.parse(line);
+    if (event.type === 'text') onText?.(event.text);
+    else if (event.type === 'sources') sources = event.sources;
+    else if (event.type === 'error') throw new ApiError(502, { code: 'answer_failed', message: event.message });
+  };
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += value;
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+    lines.forEach(handle);
+  }
+  handle(buffer);
+  return sources;
+}
+
 export const api = {
+  askWedding,
   register: (body) => request('/auth/register', { method: 'POST', body }),
   login: (body) => request('/auth/login', { method: 'POST', body }),
   logout: () => request('/auth/logout', { method: 'POST' }),

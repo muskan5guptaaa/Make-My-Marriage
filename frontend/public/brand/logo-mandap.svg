@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Make My Marriage">
+  <rect width="64" height="64" rx="15" fill="#C2185B"/>
+  <!-- the M as two pointed mandap arches meeting at the centre -->
+  <path d="M17 50V31C17 22 20.5 16.5 24.5 11.5C28.5 16.5 32 22 32 31C32 22 35.5 16.5 39.5 11.5C43.5 16.5 47 22 47 31V50"
+        fill="none" stroke="#FFF6EE" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="10"/>
+  <!-- diya flame under the arches -->
+  <path d="M32 38C34.4 41 34.9 43.3 34.3 45.1C33.7 46.7 32.4 47.5 32 47.5C31.6 47.5 30.3 46.7 29.7 45.1C29.1 43.3 29.6 41 32 38Z" fill="#F4C55A"/>
+</svg>
