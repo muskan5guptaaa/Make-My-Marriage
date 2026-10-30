@@ -42,6 +42,12 @@ export function daysBetween(fromDate, toDate) {
   return Math.round((toUtc(toDate) - toUtc(fromDate)) / 86_400_000);
 }
 
+// "2026-12-11" plus -3 days → "2026-12-08".
+export function addDays(ymd, days) {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
 export function isRealDate(s) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
   const [y, m, d] = s.split('-').map(Number);

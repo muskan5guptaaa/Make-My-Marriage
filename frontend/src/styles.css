@@ -286,6 +286,20 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 .task-due.overdue { color: var(--bad); font-weight: 600; }
 .panel .task-list .taskrow:first-child { padding-top: 0; }
 
+/* AI task plan preview: keep, edit the title, change the date. */
+.plan-list { list-style: none; margin: 8px 0 0; padding: 0; }
+.plan-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.plan-row:last-child { border-bottom: 0; }
+.plan-row > input[type='checkbox'] { width: auto; margin-top: 11px; accent-color: var(--accent); }
+.plan-row > input[type='date'] { flex: 0 0 150px; width: 150px; }
+.plan-main { flex: 1 1 auto; min-width: 0; }
+.plan-main p { margin: 4px 0 0; }
+.plan-row.dropped .plan-main, .plan-row.dropped > input[type='date'] { opacity: 0.5; }
+@media (max-width: 560px) {
+  .plan-row { flex-wrap: wrap; }
+  .plan-row > input[type='date'] { margin-left: 28px; }
+}
+
 /* ---- guests ---- */
 .head-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .guest-summary { display: flex; gap: 6px 18px; flex-wrap: wrap; font-size: 14px; color: var(--ink); }

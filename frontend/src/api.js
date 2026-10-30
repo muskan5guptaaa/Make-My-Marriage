@@ -108,6 +108,9 @@ export const api = {
     return request(`/weddings/${weddingId}/tasks${qs ? `?${qs}` : ''}`);
   },
   createTask: (weddingId, body) => request(`/weddings/${weddingId}/tasks`, { method: 'POST', body }),
+  // AI drafts only; nothing is saved until saveTasks. body: { functions?: [ids], wholeWedding }
+  planTasks: (weddingId, body) => request(`/weddings/${weddingId}/tasks/plan`, { method: 'POST', body }),
+  saveTasks: (weddingId, tasks) => request(`/weddings/${weddingId}/tasks/bulk`, { method: 'POST', body: { tasks } }),
   updateTask: (weddingId, taskId, body) => request(`/weddings/${weddingId}/tasks/${taskId}`, { method: 'PATCH', body }),
   deleteTask: (weddingId, taskId) => request(`/weddings/${weddingId}/tasks/${taskId}`, { method: 'DELETE' }),
 

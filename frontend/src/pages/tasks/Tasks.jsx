@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { useWedding } from '../../layout/WeddingContext.js';
+import PlanDialog from './PlanDialog.jsx';
 import TaskDialog from './TaskDialog.jsx';
 import TaskRow from './TaskRow.jsx';
 import { TASK_FILTERS, TASK_STATUS } from './taskStatus.js';
@@ -23,6 +24,7 @@ export default function Tasks() {
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [editing, setEditing] = useState(undefined); // undefined closed, null adding, object editing
+  const [planning, setPlanning] = useState(false);
 
   // Functions and members fill the filters and the task form.
   useEffect(() => {
@@ -79,7 +81,12 @@ export default function Tasks() {
     <>
       <div className="page-head">
         <h1 className="page-title">Tasks</h1>
-        {canEdit && <button type="button" className="btn btn-primary inline" onClick={() => setEditing(null)}>+ Add task</button>}
+        {canEdit && (
+          <span className="head-actions">
+            <button type="button" className="btn btn-outline inline" onClick={() => setPlanning(true)}>Plan with AI</button>
+            <button type="button" className="btn btn-primary inline" onClick={() => setEditing(null)}>+ Add task</button>
+          </span>
+        )}
       </div>
 
       <div className="toolbar">
@@ -131,7 +138,12 @@ export default function Tasks() {
               <>
                 <h2>No tasks yet</h2>
                 <p>Add things like &ldquo;Book caterer for Sangeet&rdquo;, give each one a due date, and assign it to someone in the family.</p>
-                {canEdit && <button type="button" className="btn btn-outline inline" onClick={() => setEditing(null)}>Add your first task</button>}
+                {canEdit && (
+                  <span className="head-actions">
+                    <button type="button" className="btn btn-primary inline" onClick={() => setPlanning(true)}>Draft a plan with AI</button>
+                    <button type="button" className="btn btn-outline inline" onClick={() => setEditing(null)}>Add your first task</button>
+                  </span>
+                )}
               </>
             )}
           </div>
@@ -165,6 +177,17 @@ export default function Tasks() {
           }}
           onClose={() => setEditing(undefined)}
           onSaved={afterSave}
+        />
+      )}
+
+      {planning && (
+        <PlanDialog
+          functions={functions}
+          onClose={() => setPlanning(false)}
+          onSaved={async () => {
+            setPlanning(false);
+            await load();
+          }}
         />
       )}
     </>

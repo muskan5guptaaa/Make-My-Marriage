@@ -24,17 +24,47 @@ const usedUp = new Map();
 const today = () => new Date().toISOString().slice(0, 10);
 
 // Starts an answer and returns an async iterable of text pieces as the model writes them.
-// Tries each model in env.gemini.models until one accepts. Problems before the first piece
-// (no allowance left, bad key) throw here, while a normal JSON error can still be sent.
-// `signal` stops the request when the person closes the page.
+// Problems before the first piece (no allowance left, bad key) throw here, while a normal
+// JSON error can still be sent. `signal` stops the request when the person closes the page.
 export async function streamAnswer({ system, prompt, signal }) {
   if (env.isTest) return fakeStream({ system, prompt });
+  return withModels(signal, async (model) => {
+    const res = await post(model, 'streamGenerateContent?alt=sse', requestBody({ system, prompt }), signal);
+    return readSse(res.body);
+  });
+}
 
+// Asks for one JSON object shaped like `schema` (Gemini's OpenAPI-style schema) and returns it
+// parsed. The caller still validates it: valid JSON can still hold wrong values.
+export async function generateJson({ system, prompt, schema, signal }) {
+  if (env.isTest) return fakeJson({ system, prompt, schema });
+  return withModels(signal, async (model) => {
+    const res = await post(model, 'generateContent', requestBody({ system, prompt, schema }), signal);
+    const text = textOfEvent(await res.json());
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.error(`Gemini returned text that isn't JSON for ${model}: ${text.slice(0, 300)}`);
+      throw new AppError(502, 'ai_bad_output', "The assistant's reply didn't make sense. Try again.");
+    }
+  });
+}
+
+const requestBody = ({ system, prompt, schema }) => ({
+  systemInstruction: { parts: [{ text: system }] },
+  contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  generationConfig: schema
+    ? { temperature: 0.2, responseMimeType: 'application/json', responseSchema: schema }
+    : { temperature: 0.2 },
+});
+
+// Tries each model in env.gemini.models until one accepts.
+async function withModels(signal, run) {
   let lastError = null;
   for (const model of env.gemini.models) {
     if (usedUp.get(model) === today()) continue;
     try {
-      return await streamFrom(model, { system, prompt, signal });
+      return await run(model);
     } catch (err) {
       if (signal?.aborted) throw err;
       if (err.code === 'ai_daily_limit') usedUp.set(model, today());
@@ -46,19 +76,16 @@ export async function streamAnswer({ system, prompt, signal }) {
   throw lastError ?? new AppError(429, 'ai_daily_limit', "The assistant has used today's free allowance. It will work again tomorrow.");
 }
 
-async function streamFrom(model, { system, prompt, signal }) {
+// One request to one model; the free plan's limits come back as clear errors.
+async function post(model, method, payload, signal) {
   const { apiKey } = env.gemini;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}`;
   const send = async () => {
     try {
       return await fetch(url, {
         method: 'POST',
         headers: { 'x-goog-api-key': apiKey, 'content-type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2 },
-        }),
+        body: JSON.stringify(payload),
         signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)].filter(Boolean)),
       });
     } catch (err) {
@@ -90,7 +117,7 @@ async function streamFrom(model, { system, prompt, signal }) {
     console.error(`Gemini request failed for ${model} (${res.status}): ${detail.slice(0, 300)}`);
     throw new AppError(503, 'ai_unavailable', "The assistant isn't available right now. Try again later.");
   }
-  return readSse(res.body);
+  return res;
 }
 
 // Gemini streams server-sent events: "data: {json}" blocks separated by blank lines.
@@ -116,8 +143,11 @@ function textOf(block) {
     .filter((line) => line.startsWith('data:'))
     .map((line) => line.slice(5).trim())
     .join('');
-  if (!data) return '';
-  const event = JSON.parse(data);
+  return data ? textOfEvent(JSON.parse(data)) : '';
+}
+
+// The text in one reply (or one streamed piece of it), leaving out the model's thinking.
+function textOfEvent(event) {
   if (event.promptFeedback?.blockReason) {
     throw new AppError(422, 'ai_blocked', "The assistant can't answer that question.");
   }
@@ -128,8 +158,14 @@ function textOf(block) {
     .join('');
 }
 
-// Test stand-in: set `fake.reply` before a request; each request is recorded in `fake.calls`.
-export const fake = { reply: '', calls: [] };
+// Test stand-in: set `fake.reply` (text) or `fake.json` (an object) before a request; each
+// request is recorded in `fake.calls`.
+export const fake = { reply: '', json: null, calls: [] };
+
+async function fakeJson(request) {
+  fake.calls.push(request);
+  return structuredClone(fake.json);
+}
 
 async function* fakeStream(request) {
   fake.calls.push(request);
