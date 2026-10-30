@@ -27,8 +27,9 @@ async function request(path, { method = 'GET', body } = {}) {
   return data;
 }
 
-// The assistant answers one JSON line at a time: text pieces, then the records it cited.
-// onText(piece) is called as each piece arrives; resolves to the cited records.
+// The assistant answers one JSON line at a time: text pieces, then the records it cited, then
+// any changes it suggests (not saved). onText(piece) is called as each piece arrives; resolves to
+// { sources, proposals, skipped }.
 async function askWedding(weddingId, question, { onText, signal } = {}) {
   let res;
   try {
@@ -48,13 +49,14 @@ async function askWedding(weddingId, question, { onText, signal } = {}) {
     throw new ApiError(res.status, data?.error);
   }
 
-  let sources = [];
+  const result = { sources: [], proposals: [], skipped: [] };
   let buffer = '';
   const handle = (line) => {
     if (!line.trim()) return;
     const event = JSON.parse(line);
     if (event.type === 'text') onText?.(event.text);
-    else if (event.type === 'sources') sources = event.sources;
+    else if (event.type === 'sources') result.sources = event.sources;
+    else if (event.type === 'proposals') Object.assign(result, { proposals: event.proposals, skipped: event.skipped });
     else if (event.type === 'error') throw new ApiError(502, { code: 'answer_failed', message: event.message });
   };
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -67,7 +69,7 @@ async function askWedding(weddingId, question, { onText, signal } = {}) {
     lines.forEach(handle);
   }
   handle(buffer);
-  return sources;
+  return result;
 }
 
 export const api = {

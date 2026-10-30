@@ -8,7 +8,7 @@ import Ask from '../pages/ask/Ask.jsx';
 
 vi.mock('../api.js', async () => {
   const actual = await vi.importActual('../api.js');
-  return { ...actual, api: { askWedding: vi.fn() } };
+  return { ...actual, api: { askWedding: vi.fn(), updateTask: vi.fn(), createTask: vi.fn(), updateExpense: vi.fn(), setRsvp: vi.fn() } };
 });
 
 const wedding = { _id: 'w1', brideName: 'Aisha', groomName: 'Rohan', status: 'active' };
@@ -28,10 +28,14 @@ describe('Ask your wedding', () => {
     api.askWedding.mockImplementation(async (_id, _q, { onText }) => {
       onText('Kabir Singh hasn’t replied [G1]');
       onText(' for the **Sangeet** [F1, G1].');
-      return [
-        { ref: 'G1', kind: 'guest', id: 'g1', label: 'Kabir Singh' },
-        { ref: 'F1', kind: 'function', id: 'f1', label: 'Sangeet · 2026-12-11' },
-      ];
+      return {
+        sources: [
+          { ref: 'G1', kind: 'guest', id: 'g1', label: 'Kabir Singh' },
+          { ref: 'F1', kind: 'function', id: 'f1', label: 'Sangeet · 2026-12-11' },
+        ],
+        proposals: [],
+        skipped: [],
+      };
     });
     renderAsk();
     const u = userEvent.setup();
@@ -52,11 +56,44 @@ describe('Ask your wedding', () => {
   });
 
   it('asks a starter question in one tap', async () => {
-    api.askWedding.mockResolvedValue([]);
+    api.askWedding.mockResolvedValue({ sources: [], proposals: [], skipped: [] });
     renderAsk();
     await userEvent.setup().click(screen.getByRole('button', { name: 'Which tasks are overdue?' }));
     expect(api.askWedding).toHaveBeenCalledWith('w1', 'Which tasks are overdue?', expect.anything());
     expect(screen.queryByRole('group', { name: 'Example questions' })).not.toBeInTheDocument();
+  });
+
+  it('applies only the suggested changes the person keeps, and shows any that fail', async () => {
+    api.askWedding.mockImplementation(async (_id, _q, { onText }) => {
+      onText('Here are 3 changes for you to approve.');
+      return {
+        sources: [],
+        proposals: [
+          { kind: 'updateTask', ids: { task: 't1' }, body: { status: 'done' }, title: 'Update task: Book mehendi artist', changes: ['Status → Done'] },
+          { kind: 'createTask', ids: {}, body: { title: 'Order haldi paste' }, title: 'New task: Order haldi paste', changes: ['For the whole wedding'] },
+          { kind: 'setRsvp', ids: { guest: 'g1', function: 'f1' }, body: { status: 'yes' }, title: 'RSVP: Kabir Singh', changes: ['Sangeet → Coming'] },
+        ],
+        skipped: ['"Ravi" isn\'t one person on the planning team.'],
+      };
+    });
+    api.updateTask.mockResolvedValue({});
+    api.setRsvp.mockRejectedValue(new ApiError(404, { code: 'not_invited', message: 'This guest is not invited to that function.' }));
+    renderAsk();
+    const u = userEvent.setup();
+    await u.type(screen.getByLabelText('Your question'), 'Tidy up{Enter}');
+
+    const changes = await screen.findByRole('region', { name: 'Suggested changes' });
+    expect(changes).toHaveTextContent('Left out:"Ravi" isn\'t one person on the planning team.');
+    await u.click(within(changes).getByRole('checkbox', { name: 'Apply New task: Order haldi paste' }));
+    await u.click(within(changes).getByRole('button', { name: 'Apply 2 changes' }));
+
+    expect(api.updateTask).toHaveBeenCalledWith('w1', 't1', { status: 'done' });
+    expect(api.createTask).not.toHaveBeenCalled();
+    expect(api.setRsvp).toHaveBeenCalledWith('w1', 'g1', 'f1', { status: 'yes' });
+    expect(await within(changes).findByRole('alert')).toHaveTextContent('not invited');
+    expect(within(changes).getByRole('link', { name: 'View' })).toHaveAttribute('href', '/w/w1/tasks');
+    // The failed one can be tried again; the saved one isn't sent twice.
+    expect(within(changes).getByRole('button', { name: 'Apply 1 change' })).toBeEnabled();
   });
 
   it('shows why an answer failed', async () => {

@@ -23,13 +23,15 @@ export function requireAi() {
 const usedUp = new Map();
 const today = () => new Date().toISOString().slice(0, 10);
 
-// Starts an answer and returns an async iterable of text pieces as the model writes them.
+// Starts an answer and returns an async iterable of pieces as the model writes them: text as
+// strings and, when `tools` (Gemini function declarations) are given, each tool the model
+// calls as { name, args }. Nothing here runs a tool; the caller decides what a call means.
 // Problems before the first piece (no allowance left, bad key) throw here, while a normal
 // JSON error can still be sent. `signal` stops the request when the person closes the page.
-export async function streamAnswer({ system, prompt, signal }) {
-  if (env.isTest) return fakeStream({ system, prompt });
+export async function streamAnswer({ system, prompt, tools, signal }) {
+  if (env.isTest) return fakeStream({ system, prompt, tools });
   return withModels(signal, async (model) => {
-    const res = await post(model, 'streamGenerateContent?alt=sse', requestBody({ system, prompt }), signal);
+    const res = await post(model, 'streamGenerateContent?alt=sse', requestBody({ system, prompt, tools }), signal);
     return readSse(res.body);
   });
 }
@@ -50,9 +52,10 @@ export async function generateJson({ system, prompt, schema, signal }) {
   });
 }
 
-const requestBody = ({ system, prompt, schema }) => ({
+const requestBody = ({ system, prompt, schema, tools }) => ({
   systemInstruction: { parts: [{ text: system }] },
   contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  ...(tools?.length ? { tools: [{ functionDeclarations: tools }] } : {}),
   generationConfig: schema
     ? { temperature: 0.2, responseMimeType: 'application/json', responseSchema: schema }
     : { temperature: 0.2 },
@@ -129,38 +132,39 @@ async function* readSse(body) {
     while ((end = buffer.indexOf('\n\n')) !== -1) {
       const block = buffer.slice(0, end);
       buffer = buffer.slice(end + 2);
-      const text = textOf(block);
-      if (text) yield text;
+      yield* piecesOf(block);
     }
   }
-  const text = textOf(buffer);
-  if (text) yield text;
+  yield* piecesOf(buffer);
 }
 
-function textOf(block) {
+// One streamed event's text (as one string) and tool calls (each as { name, args }).
+function piecesOf(block) {
   const data = block
     .split('\n')
     .filter((line) => line.startsWith('data:'))
     .map((line) => line.slice(5).trim())
     .join('');
-  return data ? textOfEvent(JSON.parse(data)) : '';
+  if (!data) return [];
+  const parts = partsOfEvent(JSON.parse(data));
+  const text = parts.map((p) => p.text ?? '').join('');
+  const calls = parts.filter((p) => p.functionCall).map((p) => ({ name: p.functionCall.name, args: p.functionCall.args ?? {} }));
+  return [...(text ? [text] : []), ...calls];
 }
 
-// The text in one reply (or one streamed piece of it), leaving out the model's thinking.
-function textOfEvent(event) {
+// The parts of one reply (or one streamed piece of it), leaving out the model's thinking.
+function partsOfEvent(event) {
   if (event.promptFeedback?.blockReason) {
     throw new AppError(422, 'ai_blocked', "The assistant can't answer that question.");
   }
-  const parts = event.candidates?.[0]?.content?.parts ?? [];
-  return parts
-    .filter((p) => !p.thought)
-    .map((p) => p.text ?? '')
-    .join('');
+  return (event.candidates?.[0]?.content?.parts ?? []).filter((p) => !p.thought);
 }
 
-// Test stand-in: set `fake.reply` (text) or `fake.json` (an object) before a request; each
-// request is recorded in `fake.calls`.
-export const fake = { reply: '', json: null, calls: [] };
+const textOfEvent = (event) => partsOfEvent(event).map((p) => p.text ?? '').join('');
+
+// Test stand-in: set `fake.reply` (text), `fake.toolCalls` ([{ name, args }], sent after the
+// text) or `fake.json` (an object) before a request; each request is recorded in `fake.calls`.
+export const fake = { reply: '', toolCalls: [], json: null, calls: [] };
 
 async function fakeJson(request) {
   fake.calls.push(request);
@@ -172,4 +176,5 @@ async function* fakeStream(request) {
   const mid = Math.ceil(fake.reply.length / 2);
   yield fake.reply.slice(0, mid);
   yield fake.reply.slice(mid);
+  for (const call of fake.toolCalls) yield structuredClone(call);
 }
