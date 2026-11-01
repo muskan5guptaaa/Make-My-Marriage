@@ -6,6 +6,8 @@ import GuestDialog from './GuestDialog.jsx';
 import { PHOTO_ACCESS, RSVP, SIDES, photoAccessShort, sideName } from './guestLabels.js';
 import EmailInvitesDialog from './EmailInvitesDialog.jsx';
 import ImportDialog from './ImportDialog.jsx';
+import InvitationDialog from './InvitationDialog.jsx';
+import SmartImportDialog from './SmartImportDialog.jsx';
 
 // The Guests screen from the design: search, then a table of Name, Side, Functions, Plus-ones, RSVP.
 export default function Guests() {
@@ -30,6 +32,8 @@ export default function Guests() {
   const [bulkAccess, setBulkAccess] = useState('view');
   const [notice, setNotice] = useState('');
   const [importing, setImporting] = useState(false);
+  const [smartImporting, setSmartImporting] = useState(false);
+  const [writingInvite, setWritingInvite] = useState(false);
   const [emailing, setEmailing] = useState(false);
 
   useEffect(() => {
@@ -119,7 +123,9 @@ export default function Guests() {
         <h1 className="page-title">Guests</h1>
         {canEdit && (
           <div className="head-actions">
+            <button type="button" className="btn btn-outline inline" onClick={() => setSmartImporting(true)}>Import with AI</button>
             <button type="button" className="btn btn-outline inline" onClick={() => setImporting(true)}>Import CSV</button>
+            <button type="button" className="btn btn-outline inline" onClick={() => setWritingInvite(true)}>Invitation words</button>
             {summary?.total > 0 && (
               <button type="button" className="btn btn-outline inline" onClick={() => setEmailing(true)}>Email invitations</button>
             )}
@@ -198,6 +204,7 @@ export default function Guests() {
                 {canEdit && (
                   <div className="head-actions">
                     <button type="button" className="btn btn-primary inline" onClick={() => setEditing(null)}>Add your first guest</button>
+                    <button type="button" className="btn btn-outline inline" onClick={() => setSmartImporting(true)}>Paste a list with AI</button>
                     <button type="button" className="btn btn-outline inline" onClick={() => setImporting(true)}>Import CSV</button>
                   </div>
                 )}
@@ -328,6 +335,16 @@ export default function Guests() {
         />
       )}
       {emailing && <EmailInvitesDialog onClose={() => setEmailing(false)} onSent={load} />}
+      {writingInvite && <InvitationDialog onClose={() => setWritingInvite(false)} />}
+      {smartImporting && (
+        <SmartImportDialog
+          onClose={() => setSmartImporting(false)}
+          onImported={() => {
+            load();
+            loadFunctions();
+          }}
+        />
+      )}
       {importing && (
         <ImportDialog
           functions={functions}

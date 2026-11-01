@@ -50,6 +50,7 @@ beforeEach(async () => {
   await mongoose.connection.db.dropDatabase();
   await mongoose.connection.syncIndexes();
   fake.reply = '';
+  fake.toolCalls = [];
   fake.calls.length = 0;
   const reg = await request(app).post('/api/v1/auth/register').send({ name: 'Aisha Sharma', email: 'aisha@email.com', password: 'mehendi2026' });
   cookie = cookieOf(reg);
@@ -162,6 +163,96 @@ describe('ask: answers', () => {
     fake.reply = 'ok';
     await ask('What functions are there?').expect(200);
     assert.doesNotMatch(fake.calls[0].prompt, /Haldi/);
+  });
+});
+
+describe('ask: suggesting changes', () => {
+  async function seedForChanges() {
+    const guests = await seedGuests();
+    const cat = await ExpenseCategory.create({ wedding: wedding._id, name: 'Catering' });
+    const expense = await Expense.create({ wedding: wedding._id, category: cat._id, vendorName: 'Taj Caterers', budgetedAmountPaise: 2_00_000_00, createdBy: user._id });
+    const task = await Task.create({ wedding: wedding._id, title: 'Book mehendi artist', createdBy: user._id });
+    return { guests, expense, task };
+  }
+
+  it('turns tool calls into proposals for approval, and saves nothing', async () => {
+    const { guests, expense, task } = await seedForChanges();
+    fake.reply = 'Here are 4 changes for you to approve.';
+    fake.toolCalls = [
+      { name: 'update_task', args: { taskRef: '[T1]', status: 'done', assignee: 'aisha', dueDate: '2026-12-01' } },
+      { name: 'create_task', args: { title: 'Order haldi paste', functionRef: 'F2', dueDate: '2026-12-10' } },
+      { name: 'update_expense', args: { expenseRef: 'E1', paymentStatus: 'partial', actualAmountRupees: 50000 } },
+      { name: 'set_rsvp', args: { guestRef: 'G2', functionRef: 'F1', status: 'yes' } }, // Meera, Sangeet
+    ];
+    const res = await ask('Mark the mehendi task done for Aisha, add a haldi paste task, we paid Taj 50k, Meera is coming to the Sangeet').expect(200);
+
+    assert.deepEqual(fake.calls[0].tools.map((t) => t.name), ['create_task', 'update_task', 'update_expense', 'set_rsvp']);
+    assert.match(fake.calls[0].system, /nothing is saved until the person approves them/);
+    const evs = events(res);
+    assert.deepEqual(evs.map((e) => e.type).slice(-3), ['sources', 'proposals', 'done']);
+    const { proposals, skipped } = evs.find((e) => e.type === 'proposals');
+    assert.deepEqual(skipped, []);
+    assert.deepEqual(proposals, [
+      {
+        kind: 'updateTask', ids: { task: String(task._id) }, title: 'Update task: Book mehendi artist',
+        body: { status: 'done', dueDate: '2026-12-01', assignee: user._id },
+        changes: ['Status → Done', 'Due → 1 Dec 2026', 'Assigned → Aisha Sharma'],
+      },
+      {
+        kind: 'createTask', ids: {}, title: 'New task: Order haldi paste',
+        body: { title: 'Order haldi paste', function: haldi._id, dueDate: '2026-12-10' },
+        changes: ['For Haldi', 'Due 10 Dec 2026'],
+      },
+      {
+        kind: 'updateExpense', ids: { expense: String(expense._id) }, title: 'Update expense: Catering · Taj Caterers',
+        body: { paymentStatus: 'partial', actualAmountPaise: 50_000_00 },
+        changes: ['Payment → Partly paid', 'Spent → ₹50,000'],
+      },
+      {
+        kind: 'setRsvp', ids: { guest: String(guests[2]._id), function: sangeet._id }, title: 'RSVP: Meera Iyer',
+        body: { status: 'yes' }, changes: ['Sangeet → Coming'],
+      },
+    ]);
+
+    assert.equal((await Task.findById(task._id)).status, 'todo', 'nothing changes until approved');
+    assert.equal(await Task.countDocuments(), 1);
+    assert.equal((await Expense.findById(expense._id)).paymentStatus ?? 'pending', 'pending');
+  });
+
+  it('drops suggestions that point at the wrong records, and says why', async () => {
+    await seedForChanges();
+    fake.reply = 'Done!';
+    fake.toolCalls = [
+      { name: 'update_task', args: { taskRef: 'T9', status: 'done' } },
+      { name: 'update_task', args: { taskRef: 'G1', status: 'done' } }, // a guest, not a task
+      { name: 'update_task', args: { taskRef: 'T1', assignee: 'Ravi' } }, // not on the team
+      { name: 'update_task', args: { taskRef: 'T1' } }, // nothing to change
+      { name: 'set_rsvp', args: { guestRef: 'G1', functionRef: 'F2', status: 'yes' } }, // Kabir isn't invited to the Haldi
+      { name: 'delete_guest', args: { guestRef: 'G1' } },
+      { name: 'create_task', args: { title: 'x'.repeat(200) } },
+    ];
+    const res = await ask('Do things').expect(200);
+
+    const { proposals, skipped } = events(res).find((e) => e.type === 'proposals');
+    assert.deepEqual(proposals, []);
+    assert.deepEqual(skipped, [
+      "Couldn't find the task the assistant meant (T9).",
+      "Couldn't find the task the assistant meant (G1).",
+      '"Ravi" isn\'t one person on the planning team.',
+      'The assistant didn\'t say what to change on "Book mehendi artist".',
+      "Kabir Singh isn't invited to the Haldi.",
+      "The assistant tried something it can't do (delete_guest).",
+      'Use at most 120 characters.',
+    ]);
+  });
+
+  it('offers no changes on an archived wedding', async () => {
+    await post(`${W}/archive`, {}).expect(200);
+    fake.reply = 'This wedding is archived.';
+    const res = await ask('Mark everything done').expect(200);
+    assert.equal(fake.calls[0].tools, undefined);
+    assert.match(fake.calls[0].system, /You can't change anything/);
+    assert.equal(events(res).some((e) => e.type === 'proposals'), false);
   });
 });
 

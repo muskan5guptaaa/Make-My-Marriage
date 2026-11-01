@@ -16,7 +16,11 @@ A wedding-planning web app for Indian weddings. Couples and their family plan ev
 | Tasks | Due dates, assignees, linked to a function, overdue tracking |
 | Expenses | Budget against actual spend per category and function, paid by bride or groom side, payment status |
 | Gallery | An album per function plus general albums. Photos upload straight to Cloudinary. The couple decides which guests can view or upload |
-| Ask your wedding (AI) | Ask a question in plain words, get a short answer with links to the records it came from |
+| Ask your wedding (AI) | Ask a question in plain words, get a short answer with links to the records it came from. Ask for a change ("mark the caterer as paid") and approve it before it's saved |
+| Task plan (AI) | Draft tasks for upcoming functions with due dates counted back from each one; edit, then save |
+| Smart guest import (AI) | Paste a WhatsApp list or upload a photo of a handwritten one; check the rows, then import. Phone numbers in pasted text are hidden from the AI |
+| Invitation words (AI) | Pick a tone and get the email and WhatsApp invitation text; edit and save, and every invitation uses it |
+| Budget insights | Over-budget categories, likely duplicate payments and payments due, worked out in code; AI suggestions on where to save, on request |
 
 ## Tech stack
 
@@ -48,7 +52,28 @@ Question → sign-in and wedding check → load this wedding's records
 - **Every fact carries a label** like `[G3]`, which the page turns into a link to the source record. If the answer isn't in the data, the assistant says so instead of guessing.
 - **All AI calls go through one file,** [`backend/src/utils/ai.js`](backend/src/utils/ai.js), so changing AI provider means changing only that file. Each free Gemini model allows about 20 requests a day, so the app moves to the next model in `GEMINI_MODELS` when one runs out.
 
-**Measuring quality:** [`backend/evals/`](backend/evals/) has 22 questions about a made-up wedding whose answers are known. `npm run eval` asks the real model each question and checks the answers with simple rules (does it say "12"? does it cite the Sangeet?). Run it after changing the prompt or the data summary.
+**Measuring quality:** [`backend/evals/`](backend/evals/) has 50 questions about a made-up wedding whose answers are known. `npm run eval` asks the real model each question and checks the answers with simple rules (does it say "12"? does it cite the Sangeet?). Run it after changing the prompt or the data summary. 50 questions is more than one day's free allowance for one model; if it runs out, the run saves what it has and prints a `--resume` command for the next day. The V2 target is 90% correct with no answer citing a record that doesn't exist.
+
+### Search by meaning (RAG)
+
+Most weddings are small enough to send whole, which is the most accurate way to count. For bigger weddings (set by `AI_RAG`), each question is turned into a vector with Gemini embeddings and MongoDB Atlas Vector Search finds the 40 closest guests, tasks and expenses; only those lines are sent, while the Totals lines still count everyone.
+
+- Vectors live in the `aichunks` collection of the same database, one per guest, task or expense, without phone numbers or emails ([`utils/aiIndex.js`](backend/src/utils/aiIndex.js)).
+- The index keeps itself up to date: before answering, the server compares each record with its stored text and re-embeds only what changed.
+- If the index isn't there, or embeddings fail, the whole wedding is sent instead, so Ask keeps working.
+
+**One-time setup in Atlas:** Database → Atlas Search → Create Search Index → *Atlas Vector Search, JSON editor* → database of the app, collection `aichunks`, index name `aichunks_vector`:
+
+```json
+{
+  "fields": [
+    { "type": "vector", "path": "embedding", "numDimensions": 768, "similarity": "cosine" },
+    { "type": "filter", "path": "wedding" }
+  ]
+}
+```
+
+To compare the two approaches on the same questions: `npm run eval` (whole wedding) and `npm run eval -- --rag` (closest 10 records per question).
 
 ## Project structure
 
@@ -126,5 +151,5 @@ The repo deploys to Vercel as one project with two services (see [`vercel.json`]
 
 ## Roadmap
 
-- **V2:** RAG with embeddings and Atlas Vector Search (compared against today's approach on the same test questions), guest-list import from a photo or pasted text, task plan generator, invitation writer, budget insights
+- **V2 (built):** search by meaning with embeddings and Atlas Vector Search, guest-list import from a photo or pasted text, task plan generator, invitation writer, budget insights. Done when the 50-question eval passes the gate.
 - **V3:** a planning agent that can make changes after the couple approves them, RSVP chat for guests, Hindi and English voice, photo search by what's in the picture

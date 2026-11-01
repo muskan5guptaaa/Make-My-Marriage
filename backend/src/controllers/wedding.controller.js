@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { AiChunk } from '../models/AiChunk.js';
 import { Wedding } from '../models/Wedding.js';
 import { Expense, ExpenseCategory } from '../models/Expense.js';
 import { WeddingFunction } from '../models/Function.js';
@@ -24,6 +25,7 @@ export const toWedding = (wedding, role) => ({
   timezone: wedding.timezone,
   currency: wedding.currency,
   status: wedding.status,
+  invitation: { email: wedding.invitation?.email ?? null, whatsapp: wedding.invitation?.whatsapp ?? null },
   createdAt: wedding.createdAt,
   updatedAt: wedding.updatedAt,
   role,
@@ -87,6 +89,10 @@ export async function updateWedding(req, res) {
   for (const key of ['brideName', 'groomName', 'timezone']) {
     if (req.body[key] !== undefined) wedding[key] = req.body[key];
   }
+  for (const key of ['email', 'whatsapp']) {
+    const text = req.body.invitation?.[key];
+    if (text !== undefined) wedding.set(`invitation.${key}`, text ?? undefined); // null clears it
+  }
 
   // A new timezone moves every function's startsAt; both writes land together.
   const session = await mongoose.startSession();
@@ -132,6 +138,7 @@ export async function deleteWedding(req, res) {
   try {
     await session.withTransaction(async () => {
       await Photo.deleteMany({ wedding: wedding._id }, { session });
+      await AiChunk.deleteMany({ wedding: wedding._id }, { session });
       await Album.deleteMany({ wedding: wedding._id }, { session });
       await Expense.deleteMany({ wedding: wedding._id }, { session });
       await ExpenseCategory.deleteMany({ wedding: wedding._id }, { session });

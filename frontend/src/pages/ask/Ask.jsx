@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useWedding } from '../../layout/WeddingContext.js';
 import Answer from './Answer.jsx';
+import Proposals from './Proposals.jsx';
 
 const STARTERS = [
   'Who hasn’t replied for the next function?',
@@ -10,6 +11,7 @@ const STARTERS = [
   'Which tasks are overdue?',
   'Are we over budget anywhere?',
   'Who needs accommodation?',
+  'Mark all overdue tasks as in progress',
 ];
 
 // Where each kind of cited record lives in the app.
@@ -20,7 +22,7 @@ const KIND = { function: 'Function', guest: 'Guest', task: 'Task', expense: 'Exp
 export default function Ask() {
   const { wedding } = useWedding();
   const [question, setQuestion] = useState('');
-  const [turns, setTurns] = useState([]); // { id, question, answer, sources, status, error }
+  const [turns, setTurns] = useState([]); // { id, question, answer, sources, proposals, skipped, status, error }
   const [busy, setBusy] = useState(false);
   const stopper = useRef(null);
   const bottom = useRef(null);
@@ -36,16 +38,16 @@ export default function Ask() {
     const q = text.trim();
     if (!q || busy) return;
     const id = Date.now();
-    setTurns((list) => [...list, { id, question: q, answer: '', sources: [], status: 'streaming', error: '' }]);
+    setTurns((list) => [...list, { id, question: q, answer: '', sources: [], proposals: [], skipped: [], status: 'streaming', error: '' }]);
     setQuestion('');
     setBusy(true);
     stopper.current = new AbortController();
     try {
-      const sources = await api.askWedding(wedding._id, q, {
+      const { sources, proposals, skipped } = await api.askWedding(wedding._id, q, {
         signal: stopper.current.signal,
         onText: (piece) => update(id, (t) => ({ answer: t.answer + piece })),
       });
-      update(id, () => ({ sources, status: 'done' }));
+      update(id, () => ({ sources, proposals, skipped, status: 'done' }));
     } catch (err) {
       if (stopper.current?.signal.aborted) update(id, () => ({ status: 'stopped' }));
       else update(id, () => ({ status: 'error', error: err.message }));
@@ -73,6 +75,7 @@ export default function Ask() {
           <h1 className="page-title">Ask your wedding</h1>
           <p className="muted">
             Answers come only from your guests, functions, tasks, expenses and photo albums, with links to where each answer came from.
+            Ask for changes too, like “mark the caterer as paid”: you approve each one before it’s saved.
           </p>
         </div>
       </div>
@@ -112,6 +115,9 @@ export default function Ask() {
                       ))}
                     </ol>
                   </div>
+                )}
+                {(t.proposals.length > 0 || t.skipped.length > 0) && (
+                  <Proposals weddingId={wedding._id} proposals={t.proposals} skipped={t.skipped} />
                 )}
               </div>
             </li>

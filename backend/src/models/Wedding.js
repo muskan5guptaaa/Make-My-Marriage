@@ -8,6 +8,11 @@ const weddingSchema = new mongoose.Schema(
     timezone: { type: String, default: 'Asia/Kolkata' },
     currency: { type: String, default: 'INR', enum: ['INR'] },
     status: { type: String, enum: ['active', 'archived'], default: 'active' },
+    // The couple's own invitation words; guest name, functions and link are added when sending.
+    invitation: {
+      email: { type: String, trim: true, maxlength: 1500 },
+      whatsapp: { type: String, trim: true, maxlength: 500 },
+    },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true },

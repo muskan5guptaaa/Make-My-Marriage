@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import * as insights from '../controllers/budgetInsights.controller.js';
 import * as expenses from '../controllers/expense.controller.js';
+import { aiLimit } from '../middleware/aiLimit.js';
 import { requireAuth } from '../middleware/auth.js';
 import { loadWedding, requireActive } from '../middleware/membership.js';
 import { validateBody } from '../middleware/validate.js';
@@ -21,6 +23,9 @@ expenseRouter.delete(`${C}/:categoryId`, ...write, expenses.deleteCategory);
 
 expenseRouter.get(E, ...member, expenses.listExpenses);
 expenseRouter.get(`${E}/summary`, ...member, expenses.expenseSummary); // before /:expenseId
+// Budget insights: facts worked out in code (free); AI suggestions only on request. Neither changes data.
+expenseRouter.get(`${E}/insights`, ...member, insights.budgetInsights);
+expenseRouter.post(`${E}/insights/suggest`, ...member, aiLimit, insights.suggestSavings);
 expenseRouter.post(E, ...write, validateBody(createExpenseSchema), expenses.createExpense);
 expenseRouter.get(`${E}/:expenseId`, ...member, expenses.getExpense);
 expenseRouter.patch(`${E}/:expenseId`, ...write, validateBody(updateExpenseSchema), expenses.updateExpense);

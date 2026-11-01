@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import * as guests from '../controllers/guest.controller.js';
+import * as smartImport from '../controllers/guestImport.controller.js';
+import { aiLimit } from '../middleware/aiLimit.js';
 import { requireAuth } from '../middleware/auth.js';
 import { loadWedding, requireActive } from '../middleware/membership.js';
 import { validateBody } from '../middleware/validate.js';
-import { createGuestSchema, deleteGuestsSchema, importSchema, photoAccessSchema, rsvpSchema, sendInvitationsSchema, updateGuestSchema } from '../validators/guest.schemas.js';
+import { createGuestSchema, deleteGuestsSchema, extractGuestsSchema, importSchema, photoAccessSchema, rsvpSchema, sendInvitationsSchema, updateGuestSchema } from '../validators/guest.schemas.js';
 
 export const guestRouter = Router();
 
@@ -17,6 +19,8 @@ const ONE = `${G}/:guestId`;
 guestRouter.get(G, ...member, guests.listGuests);
 guestRouter.post(G, ...write, validateBody(createGuestSchema), guests.createGuest);
 guestRouter.post(`${G}/import`, ...write, validateBody(importSchema), guests.importGuests);
+// Smart import: the AI reads a pasted list or photo into rows (saves nothing); kept rows go to /import.
+guestRouter.post(`${G}/extract`, ...write, aiLimit, validateBody(extractGuestsSchema), smartImport.extractGuests);
 guestRouter.post(`${G}/delete`, ...write, validateBody(deleteGuestsSchema), guests.deleteGuests);
 guestRouter.post(`${G}/photo-access`, ...write, validateBody(photoAccessSchema), guests.setPhotoAccess);
 guestRouter.post(`${G}/send-invitations`, ...write, validateBody(sendInvitationsSchema), guests.sendInvitations);

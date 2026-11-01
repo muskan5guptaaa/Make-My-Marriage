@@ -27,8 +27,9 @@ async function request(path, { method = 'GET', body } = {}) {
   return data;
 }
 
-// The assistant answers one JSON line at a time: text pieces, then the records it cited.
-// onText(piece) is called as each piece arrives; resolves to the cited records.
+// The assistant answers one JSON line at a time: text pieces, then the records it cited, then
+// any changes it suggests (not saved). onText(piece) is called as each piece arrives; resolves to
+// { sources, proposals, skipped }.
 async function askWedding(weddingId, question, { onText, signal } = {}) {
   let res;
   try {
@@ -48,13 +49,14 @@ async function askWedding(weddingId, question, { onText, signal } = {}) {
     throw new ApiError(res.status, data?.error);
   }
 
-  let sources = [];
+  const result = { sources: [], proposals: [], skipped: [] };
   let buffer = '';
   const handle = (line) => {
     if (!line.trim()) return;
     const event = JSON.parse(line);
     if (event.type === 'text') onText?.(event.text);
-    else if (event.type === 'sources') sources = event.sources;
+    else if (event.type === 'sources') result.sources = event.sources;
+    else if (event.type === 'proposals') Object.assign(result, { proposals: event.proposals, skipped: event.skipped });
     else if (event.type === 'error') throw new ApiError(502, { code: 'answer_failed', message: event.message });
   };
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -67,7 +69,7 @@ async function askWedding(weddingId, question, { onText, signal } = {}) {
     lines.forEach(handle);
   }
   handle(buffer);
-  return sources;
+  return result;
 }
 
 export const api = {
@@ -83,6 +85,8 @@ export const api = {
   listWeddings: (status = 'active') => request(`/weddings?status=${status}`),
   getWedding: (id) => request(`/weddings/${id}`),
   updateWedding: (id, body) => request(`/weddings/${id}`, { method: 'PATCH', body }),
+  // AI drafts the invitation words ({ tone, notes }); saved only through updateWedding({ invitation }).
+  draftInvitation: (id, body) => request(`/weddings/${id}/invitation/draft`, { method: 'POST', body }),
   archiveWedding: (id) => request(`/weddings/${id}/archive`, { method: 'POST' }),
   restoreWedding: (id) => request(`/weddings/${id}/restore`, { method: 'POST' }),
 
@@ -164,6 +168,11 @@ export const api = {
     return request(`/weddings/${weddingId}/expenses${qs ? `?${qs}` : ''}`);
   },
   expenseSummary: (weddingId) => request(`/weddings/${weddingId}/expenses/summary`),
+  getExpense: (weddingId, expenseId) => request(`/weddings/${weddingId}/expenses/${expenseId}`),
+  // Over budget, likely duplicates, payments due: worked out in code, no AI.
+  expenseInsights: (weddingId) => request(`/weddings/${weddingId}/expenses/insights`),
+  // Up to 3 AI suggestions about those facts; changes nothing.
+  suggestSavings: (weddingId) => request(`/weddings/${weddingId}/expenses/insights/suggest`, { method: 'POST', body: {} }),
   createExpense: (weddingId, body) => request(`/weddings/${weddingId}/expenses`, { method: 'POST', body }),
   updateExpense: (weddingId, expenseId, body) => request(`/weddings/${weddingId}/expenses/${expenseId}`, { method: 'PATCH', body }),
   deleteExpense: (weddingId, expenseId) => request(`/weddings/${weddingId}/expenses/${expenseId}`, { method: 'DELETE' }),
