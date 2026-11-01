@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { useWedding } from '../../layout/WeddingContext.js';
 import { formatINR, formatINRShort } from '../../lib/format.js';
+import BudgetInsights from './BudgetInsights.jsx';
 import CategoriesDialog from './CategoriesDialog.jsx';
 import ExpenseDialog from './ExpenseDialog.jsx';
 import { PAID_BY, PAYMENT, paidByName } from './expenseLabels.js';
@@ -53,6 +54,16 @@ export default function Expenses() {
   async function afterChange() {
     setEditing(undefined);
     await Promise.all([load(), loadCategories()]);
+  }
+
+  // An expense named in Needs attention may be hidden by the filters, so fetch it if needed.
+  async function openExpense(id) {
+    if (!canEdit) return;
+    try {
+      setEditing(expenses?.find((e) => e._id === id) ?? (await api.getExpense(wedding._id, id)).expense);
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   const total = summary?.total;
@@ -122,6 +133,8 @@ export default function Expenses() {
               {payerTotal > 0 && <p className="muted small">Spent so far, or the budget where nothing is spent yet.</p>}
             </section>
           </div>
+
+          <BudgetInsights weddingId={wedding._id} refreshKey={summary} onOpen={openExpense} />
 
           {summary.byCategory.length > 0 && (
             <>

@@ -85,6 +85,8 @@ export const api = {
   listWeddings: (status = 'active') => request(`/weddings?status=${status}`),
   getWedding: (id) => request(`/weddings/${id}`),
   updateWedding: (id, body) => request(`/weddings/${id}`, { method: 'PATCH', body }),
+  // AI drafts the invitation words ({ tone, notes }); saved only through updateWedding({ invitation }).
+  draftInvitation: (id, body) => request(`/weddings/${id}/invitation/draft`, { method: 'POST', body }),
   archiveWedding: (id) => request(`/weddings/${id}/archive`, { method: 'POST' }),
   restoreWedding: (id) => request(`/weddings/${id}/restore`, { method: 'POST' }),
 
@@ -166,6 +168,11 @@ export const api = {
     return request(`/weddings/${weddingId}/expenses${qs ? `?${qs}` : ''}`);
   },
   expenseSummary: (weddingId) => request(`/weddings/${weddingId}/expenses/summary`),
+  getExpense: (weddingId, expenseId) => request(`/weddings/${weddingId}/expenses/${expenseId}`),
+  // Over budget, likely duplicates, payments due: worked out in code, no AI.
+  expenseInsights: (weddingId) => request(`/weddings/${weddingId}/expenses/insights`),
+  // Up to 3 AI suggestions about those facts; changes nothing.
+  suggestSavings: (weddingId) => request(`/weddings/${weddingId}/expenses/insights/suggest`, { method: 'POST', body: {} }),
   createExpense: (weddingId, body) => request(`/weddings/${weddingId}/expenses`, { method: 'POST', body }),
   updateExpense: (weddingId, expenseId, body) => request(`/weddings/${weddingId}/expenses/${expenseId}`, { method: 'PATCH', body }),
   deleteExpense: (weddingId, expenseId) => request(`/weddings/${weddingId}/expenses/${expenseId}`, { method: 'DELETE' }),

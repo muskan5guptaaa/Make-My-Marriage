@@ -412,12 +412,15 @@ function invitationEmail(guest, wedding, fns, token) {
       const day = new Date(`${f.localDate}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' });
       return `  • ${f.name}: ${day}${f.startTime ? `, ${f.startTime}` : ''}${f.venue ? `, ${f.venue}` : ''}`;
     });
+  // The couple's own words (from the invitation writer) replace the standard opening line.
+  const own = wedding.invitation?.email;
+  const opening = own ? `${own}\n\nYou're invited to:` : `${couple} would love you to join them for:`;
   return {
     to: guest.email,
     subject: `You're invited: ${couple}`,
     text:
       `Dear ${guest.name},\n\n` +
-      `${couple} would love you to join them for:\n${lines.join('\n')}\n\n` +
+      `${opening}\n${lines.join('\n')}\n\n` +
       `See the details and RSVP for each function here (no login needed):\n${linkUrl(token)}\n\n` +
       `This link is just for you, so please don't forward it.\n\nWith love,\n${couple}`,
   };

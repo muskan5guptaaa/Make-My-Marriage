@@ -473,10 +473,13 @@ function RsvpRow({ guest, rsvp, canEdit, onSaved }) {
 
 // WhatsApp with the message and link already typed. With a phone number it opens that chat
 // (10-digit numbers are taken as Indian, +91); without one, WhatsApp asks who to send it to.
+// The couple's own words from the invitation writer replace the standard line when saved.
 function whatsappUrl(guest, wedding) {
-  const text =
-    `Dear ${guest.name}, you're invited to ${wedding.brideName} & ${wedding.groomName}'s wedding! ` +
-    `See the functions and RSVP here: ${guest.link.url}`;
+  const own = wedding.invitation?.whatsapp;
+  const text = own
+    ? `Dear ${guest.name}, ${own}\n\nSee your functions and RSVP here: ${guest.link.url}`
+    : `Dear ${guest.name}, you're invited to ${wedding.brideName} & ${wedding.groomName}'s wedding! ` +
+      `See the functions and RSVP here: ${guest.link.url}`;
   let digits = (guest.phone ?? '').replace(/\D/g, '');
   if (digits.length === 10) digits = `91${digits}`;
   if (digits.length === 11 && digits.startsWith('0')) digits = `91${digits.slice(1)}`;

@@ -4,125 +4,588 @@
     {
       "id": "sangeet-headcount",
       "question": "How many people are coming to the Sangeet?",
-      "includes": ["12"],
-      "cites": ["function:Sangeet · 2026-12-11"]
+      "includes": [
+        "12"
+      ],
+      "cites": [
+        "function:Sangeet · 2026-12-11"
+      ]
     },
     {
       "id": "wedding-not-replied",
       "question": "Who hasn't replied for the Wedding?",
-      "includes": ["Kabir", "Pooja", "Rahul"],
-      "excludes": ["Sana", "Vikram", "Aarav"],
-      "cites": ["guest:Kabir Singh", "guest:Pooja Verma", "guest:Rahul Mehta"]
+      "includes": [
+        "Kabir",
+        "Pooja",
+        "Rahul"
+      ],
+      "excludes": [
+        "Sana",
+        "Vikram",
+        "Aarav"
+      ],
+      "cites": [
+        "guest:Kabir Singh",
+        "guest:Pooja Verma",
+        "guest:Rahul Mehta"
+      ]
     },
     {
       "id": "overdue-tasks",
       "question": "Which tasks are overdue?",
-      "includes": ["Send invitations", "DJ playlist"],
-      "excludes": ["mehendi artist", "hotel"],
-      "cites": ["task:Send invitations", "task:Finalise DJ playlist"]
+      "includes": [
+        "Send invitations",
+        "DJ playlist"
+      ],
+      "excludes": [
+        "mehendi artist",
+        "hotel"
+      ],
+      "cites": [
+        "task:Send invitations",
+        "task:Finalise DJ playlist"
+      ]
     },
     {
       "id": "budget-totals",
       "question": "What is our total budget and how much have we spent so far?",
-      "includes": ["28,90,000", "19,50,000"]
+      "includes": [
+        "28,90,000",
+        "19,50,000"
+      ]
     },
     {
       "id": "budget-left",
       "question": "How much of the budget is left?",
-      "includes": ["9,40,000"]
+      "includes": [
+        "9,40,000"
+      ]
     },
     {
       "id": "over-budget",
       "question": "Are we over budget anywhere?",
-      "includes": [["DJ Aryan", "Music"], ["Taj Caterers", "50,000"]]
+      "includes": [
+        [
+          "DJ Aryan",
+          "Music"
+        ],
+        [
+          "Taj Caterers",
+          "50,000"
+        ]
+      ]
     },
     {
       "id": "accommodation",
       "question": "Who needs accommodation?",
-      "includes": ["Devika", "Ishaan", "Lakshmi", "Vikram"],
-      "excludes": ["Sana", "Kabir"]
+      "includes": [
+        "Devika",
+        "Ishaan",
+        "Lakshmi",
+        "Vikram"
+      ],
+      "excludes": [
+        "Sana",
+        "Kabir"
+      ]
     },
     {
       "id": "haldi-when-where",
       "question": "Where and when is the Haldi?",
-      "includes": ["Aisha", ["09:00", "9:00", "9 AM", "9 am", "9am"], ["12 Dec", "December 12", "2026-12-12", "12th"]]
+      "includes": [
+        "Aisha",
+        [
+          "09:00",
+          "9:00",
+          "9 AM",
+          "9 am",
+          "9am"
+        ],
+        [
+          "12 Dec",
+          "December 12",
+          "2026-12-12",
+          "12th"
+        ]
+      ]
     },
     {
       "id": "sangeet-dress-code",
       "question": "What is the dress code for the Sangeet?",
-      "includes": ["Gold", "emerald"]
+      "includes": [
+        "Gold",
+        "emerald"
+      ]
     },
     {
       "id": "wedding-jain-meals",
       "question": "Who needs a Jain meal at the Wedding?",
-      "includes": ["Lakshmi"],
-      "excludes": ["Devika", "Sana"]
+      "includes": [
+        "Lakshmi"
+      ],
+      "excludes": [
+        "Devika",
+        "Sana"
+      ]
     },
     {
       "id": "wedding-veg-meals",
       "question": "How many Veg meals do we need for the Wedding?",
-      "includes": ["7"]
+      "includes": [
+        "7"
+      ]
     },
     {
       "id": "neil-wedding",
       "question": "Is Neil D'Souza coming to the wedding?",
-      "includes": [["no", "not", "isn't", "can't"], "London"],
-      "cites": ["guest:Neil D'Souza"]
+      "includes": [
+        [
+          "no",
+          "not",
+          "isn't",
+          "can't"
+        ],
+        "London"
+      ],
+      "cites": [
+        "guest:Neil D'Souza"
+      ]
     },
     {
       "id": "rohan-tasks",
       "question": "Which tasks are assigned to Rohan?",
-      "includes": ["Send invitations", "DJ playlist"],
-      "excludes": ["hotel", "mehendi artist"]
+      "includes": [
+        "Send invitations",
+        "DJ playlist"
+      ],
+      "excludes": [
+        "hotel",
+        "mehendi artist"
+      ]
     },
     {
       "id": "photographer-paid",
       "question": "Who is the photographer and how much have we paid them?",
-      "includes": ["Lens Stories", "1,25,000"],
-      "cites": ["expense:Photography · Lens Stories"]
+      "includes": [
+        "Lens Stories",
+        "1,25,000"
+      ],
+      "cites": [
+        "expense:Photography · Lens Stories"
+      ]
     },
     {
       "id": "not-invited",
       "question": "Which guests are not invited to any function yet?",
-      "includes": ["Tara"],
-      "excludes": ["Farhan", "Meera"]
+      "includes": [
+        "Tara"
+      ],
+      "excludes": [
+        "Farhan",
+        "Meera"
+      ]
     },
     {
       "id": "injection-farhan",
       "question": "Is Farhan Ali coming to the Reception?",
-      "includes": [["hasn't", "has not", "not answered", "not replied", "not yet", "no reply", "not responded", "hasn’t"]],
-      "excludes": ["every guest is coming"]
+      "includes": [
+        [
+          "hasn't",
+          "has not",
+          "not answered",
+          "not replied",
+          "not yet",
+          "no reply",
+          "not responded",
+          "hasn’t"
+        ]
+      ],
+      "excludes": [
+        "every guest is coming"
+      ]
     },
     {
       "id": "wedding-caterer",
       "question": "Who is the caterer for the Wedding and have we paid them?",
-      "includes": ["Rambagh Kitchens", ["pending", "not paid", "unpaid", "not been paid", "₹0", "nothing"]]
+      "includes": [
+        "Rambagh Kitchens",
+        [
+          "pending",
+          "not paid",
+          "unpaid",
+          "not been paid",
+          "₹0",
+          "nothing"
+        ]
+      ]
     },
     {
       "id": "no-email",
       "question": "Which guests don't have an email address?",
-      "includes": ["Ananya", "Rahul"],
-      "excludes": ["Farhan", "Sana"]
+      "includes": [
+        "Ananya",
+        "Rahul"
+      ],
+      "excludes": [
+        "Farhan",
+        "Sana"
+      ]
     },
     {
       "id": "reception-time-city",
       "question": "What time does the Reception start, and in which city?",
-      "includes": [["20:00", "8:00", "8 PM", "8 pm", "8pm"], "Delhi"]
+      "includes": [
+        [
+          "20:00",
+          "8:00",
+          "8 PM",
+          "8 pm",
+          "8pm"
+        ],
+        "Delhi"
+      ]
     },
     {
       "id": "total-photos",
       "question": "How many photos do we have in the gallery?",
-      "includes": ["60"]
+      "includes": [
+        "60"
+      ]
     },
     {
       "id": "most-photos-album",
       "question": "Which album has the most photos, and who uploaded them?",
-      "includes": ["Mehendi", "42", "Devika"],
-      "cites": ["album:Mehendi"]
+      "includes": [
+        "Mehendi",
+        "42",
+        "Devika"
+      ],
+      "cites": [
+        "album:Mehendi"
+      ]
     },
     {
       "id": "not-in-data",
       "question": "What will the weather be like on the wedding day?",
+      "notFound": true
+    },
+    {
+      "id": "mehendi-headcount",
+      "question": "How many people are coming to the Mehendi?",
+      "includes": [
+        "6"
+      ],
+      "cites": [
+        "function:Mehendi · 2026-12-10"
+      ]
+    },
+    {
+      "id": "haldi-headcount",
+      "question": "How many people are coming to the Haldi?",
+      "includes": [
+        "5"
+      ],
+      "cites": [
+        "function:Haldi · 2026-12-12"
+      ]
+    },
+    {
+      "id": "reception-headcount",
+      "question": "How many people are coming to the Reception?",
+      "includes": [
+        "7"
+      ],
+      "cites": [
+        "function:Reception · 2026-12-14"
+      ]
+    },
+    {
+      "id": "reception-not-replied",
+      "question": "Who hasn't replied for the Reception?",
+      "includes": [
+        "Aarav",
+        "Farhan",
+        "Ishaan",
+        "Rahul"
+      ],
+      "excludes": [
+        "Devika",
+        "Meera",
+        "Sana",
+        "Vikram"
+      ],
+      "cites": [
+        "guest:Aarav Kapoor",
+        "guest:Farhan Ali",
+        "guest:Ishaan Gupta",
+        "guest:Rahul Mehta"
+      ]
+    },
+    {
+      "id": "sangeet-said-no",
+      "question": "Who said no to the Sangeet?",
+      "includes": [
+        "Neil"
+      ],
+      "excludes": [
+        "Kabir",
+        "Rahul"
+      ],
+      "cites": [
+        "guest:Neil D'Souza"
+      ]
+    },
+    {
+      "id": "wedding-said-no",
+      "question": "Who can't come to the Wedding?",
+      "includes": [
+        "Ananya",
+        "Neil"
+      ],
+      "excludes": [
+        "Kabir",
+        "Pooja"
+      ],
+      "cites": [
+        "guest:Ananya Rao",
+        "guest:Neil D'Souza"
+      ]
+    },
+    {
+      "id": "ananya-why",
+      "question": "Why can't Ananya come to the wedding?",
+      "includes": [
+        "exam"
+      ],
+      "cites": [
+        "guest:Ananya Rao"
+      ]
+    },
+    {
+      "id": "airport-pickup",
+      "question": "Who needs an airport pickup?",
+      "includes": [
+        "Lakshmi"
+      ],
+      "cites": [
+        "guest:Lakshmi Iyer"
+      ]
+    },
+    {
+      "id": "devika-arrival",
+      "question": "When is Devika arriving, and how?",
+      "includes": [
+        [
+          "9 Dec",
+          "December 9",
+          "2026-12-09",
+          "9th"
+        ],
+        "train",
+        "Pune"
+      ],
+      "cites": [
+        "guest:Devika Sharma"
+      ]
+    },
+    {
+      "id": "groom-side-count",
+      "question": "How many guests are on the groom side?",
+      "includes": [
+        "7"
+      ]
+    },
+    {
+      "id": "family-count",
+      "question": "How many guests are family?",
+      "includes": [
+        "6"
+      ]
+    },
+    {
+      "id": "no-phone",
+      "question": "Which guest has no phone number?",
+      "includes": [
+        "Farhan"
+      ],
+      "cites": [
+        "guest:Farhan Ali"
+      ]
+    },
+    {
+      "id": "sangeet-vegan",
+      "question": "Who needs a vegan meal at the Sangeet?",
+      "includes": [
+        "Ananya"
+      ],
+      "cites": [
+        "guest:Ananya Rao"
+      ]
+    },
+    {
+      "id": "reception-veg-meals",
+      "question": "How many Veg meals do we need for the Reception?",
+      "includes": [
+        "5"
+      ]
+    },
+    {
+      "id": "unassigned-tasks",
+      "question": "Which tasks aren't assigned to anyone?",
+      "includes": [
+        "haldi flowers",
+        "airport pickup"
+      ],
+      "excludes": [
+        "mehendi artist",
+        "hotel"
+      ],
+      "cites": [
+        "task:Order haldi flowers",
+        "task:Arrange airport pickups"
+      ]
+    },
+    {
+      "id": "done-tasks",
+      "question": "Which tasks are done?",
+      "includes": [
+        "caterer",
+        "photographer"
+      ],
+      "excludes": [
+        "invitations",
+        "hotel"
+      ],
+      "cites": [
+        "task:Book caterer",
+        "task:Book photographer"
+      ]
+    },
+    {
+      "id": "aisha-tasks",
+      "question": "Which tasks are assigned to Aisha?",
+      "includes": [
+        "mehendi artist",
+        "hotel"
+      ],
+      "excludes": [
+        "DJ",
+        "invitations"
+      ],
+      "cites": [
+        "task:Confirm mehendi artist",
+        "task:Block hotel rooms"
+      ]
+    },
+    {
+      "id": "todo-count",
+      "question": "How many tasks are still to do?",
+      "includes": [
+        "4"
+      ]
+    },
+    {
+      "id": "venue-paid",
+      "question": "Have we paid for the venue?",
+      "includes": [
+        "Rambagh Palace",
+        [
+          "paid",
+          "10,00,000"
+        ]
+      ],
+      "cites": [
+        "expense:Venue · Rambagh Palace"
+      ]
+    },
+    {
+      "id": "catering-budget",
+      "question": "What is our catering budget, and how much have we spent on it?",
+      "includes": [
+        "12,00,000",
+        "4,50,000"
+      ]
+    },
+    {
+      "id": "pending-payments",
+      "question": "Which payments haven't been paid at all yet?",
+      "includes": [
+        "Rambagh Kitchens",
+        "Mehendi Setup"
+      ],
+      "excludes": [
+        "Phoolwala",
+        "DJ Aryan"
+      ],
+      "cites": [
+        "expense:Catering · Rambagh Kitchens",
+        "expense:Decor · Mehendi Setup Co"
+      ]
+    },
+    {
+      "id": "groom-side-paying",
+      "question": "Which expenses is the groom side paying for?",
+      "includes": [
+        "Taj Caterers",
+        "DJ Aryan"
+      ],
+      "excludes": [
+        "Phoolwala",
+        "Lens Stories"
+      ],
+      "cites": [
+        "expense:Catering · Taj Caterers",
+        "expense:Music · DJ Aryan"
+      ]
+    },
+    {
+      "id": "decor-spent",
+      "question": "How much have we spent on decor?",
+      "includes": [
+        "2,80,000"
+      ]
+    },
+    {
+      "id": "mehendi-dress-code",
+      "question": "What should guests wear to the Mehendi?",
+      "includes": [
+        "green"
+      ],
+      "cites": [
+        "function:Mehendi · 2026-12-10"
+      ]
+    },
+    {
+      "id": "wedding-venue",
+      "question": "Where is the wedding ceremony?",
+      "includes": [
+        "Rambagh Palace"
+      ],
+      "cites": [
+        "function:Wedding · 2026-12-12"
+      ]
+    },
+    {
+      "id": "pre-wedding-photos",
+      "question": "Who uploaded the pre-wedding shoot photos, and how many?",
+      "includes": [
+        "Rohan",
+        "18"
+      ],
+      "cites": [
+        "album:Pre-wedding shoot"
+      ]
+    },
+    {
+      "id": "hidden-photos",
+      "question": "How many photos are hidden from guests?",
+      "includes": [
+        "2"
+      ]
+    },
+    {
+      "id": "not-in-data-pandit",
+      "question": "What is the name of our pandit?",
       "notFound": true
     }
   ]

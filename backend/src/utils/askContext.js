@@ -21,10 +21,24 @@ const quote = (s) => `"${String(s).replace(/\s+/g, ' ').trim()}"`;
  *   Plain records as stored. `functions` should already exclude archived ones; `members` are
  *   { userId, name, role }, `today` is YYYY-MM-DD in the wedding's timezone; `albums` are
  *   { _id, name, function, photos, byGuests, hidden, uploaders: [{ name, count }], lastUploadedAt }.
- * @returns { text, refs } where refs maps "G3" to { kind, id, label }.
+ * @param options { keep } — a Set of guest, task and expense ids found by search by meaning:
+ *   only those lines are written. Functions, albums and every Totals line still cover everything.
+ * @returns { text, refs, recordLines } where refs maps "G3" to { kind, id, label } (for every
+ *   record, written or not) and recordLines maps each guest, task and expense id to
+ *   { kind, line }, the text that record is searched by.
  */
-export function buildAskContext({ wedding, functions, guests, tasks, expenses, categories, members, today, albums = [] }) {
+export function buildAskContext({ wedding, functions, guests, tasks, expenses, categories, members, today, albums = [] }, { keep } = {}) {
   const refs = new Map();
+  const recordLines = new Map();
+  // One record's line: always remembered for search, written unless search left it out.
+  const record = (kind, id, line) => {
+    recordLines.set(String(id), { kind, line });
+    if (!keep || keep.has(String(id))) out(line);
+  };
+  const shown = (list, noun) => {
+    const n = keep ? list.filter((x) => keep.has(String(x._id))).length : list.length;
+    if (n < list.length) out(`(Showing the ${n} ${noun} that best match the question, out of ${list.length}. The Totals line counts all of them.)`);
+  };
   const add = (prefix, list, kind, label) =>
     new Map(
       list.map((item, i) => {
@@ -87,6 +101,7 @@ export function buildAskContext({ wedding, functions, guests, tasks, expenses, c
   const bySide = count(guests, (g) => SIDE[g.side] ?? 'both sides');
   const byGroup = count(guests, (g) => g.groupTag ?? 'other');
   out(`Totals: ${Object.entries(bySide).map(([k, n]) => `${n} ${k}`).join(', ')}; groups: ${Object.entries(byGroup).map(([k, n]) => `${k} ${n}`).join(', ')}; ${guests.filter((g) => g.accommodationNeeded).length} need accommodation; ${guests.filter((g) => !g.phone).length} have no phone number; ${guests.filter((g) => !g.email).length} have no email.`);
+  shown(guests, 'guests');
   for (const g of guests) {
     const parts = [`[${guestRef.get(String(g._id))}] ${g.name}`, SIDE[g.side] ?? 'both sides', g.groupTag ?? 'other'];
     if (g.plusOnesAllowed) parts.push(`may bring ${plural(g.plusOnesAllowed, 'extra person', 'extra people')}`);
@@ -110,7 +125,7 @@ export function buildAskContext({ wedding, functions, guests, tasks, expenses, c
     if (g.invitationSentAt) parts.push('invitation emailed');
     if (g.photoAccess === 'view') parts.push('can view photos');
     if (g.photoAccess === 'upload') parts.push('can view and upload photos');
-    out(parts.join(' · '));
+    record('guest', g._id, parts.join(' · '));
   }
 
   // ---- tasks ----
@@ -119,13 +134,14 @@ export function buildAskContext({ wedding, functions, guests, tasks, expenses, c
   out(`## Tasks (${tasks.length})`);
   const byStatus = count(tasks, (t) => TASK_STATUS[t.status]);
   out(`Totals: ${Object.entries(byStatus).map(([k, n]) => `${n} ${k}`).join(', ') || 'none'}; ${tasks.filter(overdue).length} overdue.`);
+  shown(tasks, 'tasks');
   for (const t of tasks) {
     const parts = [`[${taskRef.get(String(t._id))}] ${t.title}`, TASK_STATUS[t.status]];
     parts.push(fnName(t.function) ?? 'whole wedding');
     if (t.dueDate) parts.push(`due ${dated(t.dueDate)}${overdue(t) ? ', overdue' : ''}`);
     parts.push(t.assignee && memberName.has(String(t.assignee)) ? `assigned to ${memberName.get(String(t.assignee))}` : 'not assigned');
     if (t.description) parts.push(`details: ${quote(t.description)}`);
-    out(parts.join(' · '));
+    record('task', t._id, parts.join(' · '));
   }
 
   // ---- budget ----
@@ -152,6 +168,7 @@ export function buildAskContext({ wedding, functions, guests, tasks, expenses, c
   }
   const overspent = expenses.filter((e) => over(e) > 0);
   out(`Expenses that cost more than budgeted: ${overspent.map((e) => `${e.vendorName} [${expenseRef.get(String(e._id))}] by ${rupees(over(e))}`).join('; ') || 'none'}.`);
+  shown(expenses, 'expenses');
   for (const e of expenses) {
     const parts = [`[${expenseRef.get(String(e._id))}] ${catName.get(String(e.category)) ?? 'Other'}`, e.vendorName];
     parts.push(fnName(e.function) ?? 'whole wedding');
@@ -160,7 +177,7 @@ export function buildAskContext({ wedding, functions, guests, tasks, expenses, c
     parts.push(`payment ${e.paymentStatus ?? 'pending'}`, `paid by ${PAID_BY[e.paidBy] ?? 'shared'}`);
     if (e.dueDate) parts.push(`due ${dated(e.dueDate)}`);
     if (e.notes) parts.push(`notes: ${quote(e.notes)}`);
-    out(parts.join(' · '));
+    record('expense', e._id, parts.join(' · '));
   }
 
   // ---- gallery ----
@@ -178,7 +195,7 @@ export function buildAskContext({ wedding, functions, guests, tasks, expenses, c
     out(parts.join(' · '));
   }
 
-  return { text: lines.join('\n'), refs };
+  return { text: lines.join('\n'), refs, recordLines };
 }
 
 function count(list, keyOf) {

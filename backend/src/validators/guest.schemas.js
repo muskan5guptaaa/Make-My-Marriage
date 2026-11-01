@@ -63,6 +63,20 @@ export const importSchema = z.object({
   csv: z.string().min(1, 'Choose a CSV file.').max(1_000_000, 'The file is too large. Split it into smaller files.'),
 });
 
+// Smart import: pasted text, or one photo (shrunk by the page to well under the 2 MB body limit).
+export const extractGuestsSchema = z
+  .object({
+    text: z.preprocess(blankToNull, z.string().trim().max(20_000, 'Paste at most 20,000 characters at a time.').nullable().optional()),
+    image: z
+      .object({
+        mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp'], { message: 'Use a JPEG, PNG or WebP photo.' }),
+        data: z.string().max(1_800_000, 'The photo is too large.').regex(/^[A-Za-z0-9+/]+=*$/, 'The photo could not be read.'),
+      })
+      .nullable()
+      .optional(),
+  })
+  .refine((b) => Boolean(b.text) !== Boolean(b.image), { message: 'Paste a list or choose a photo.', path: ['text'] });
+
 // A guest answering on their own link: yes or no (planners can also set pending).
 export const portalRsvpSchema = z.object({
   status: z.enum(['yes', 'no'], { message: 'Choose yes or no.' }),

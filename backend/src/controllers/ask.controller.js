@@ -6,7 +6,8 @@ import { Task } from '../models/Task.js';
 import { WeddingMember } from '../models/WeddingMember.js';
 import { requireAi, streamAnswer } from '../utils/ai.js';
 import { ASK_TOOLS, toProposals } from '../utils/askActions.js';
-import { buildAskContext, citedRefs } from '../utils/askContext.js';
+import { citedRefs } from '../utils/askContext.js';
+import { contextForQuestion } from '../utils/aiIndex.js';
 import { todayIn } from '../utils/time.js';
 
 // The rules the model follows. Wedding data goes in the question message, marked as data.
@@ -93,7 +94,9 @@ export const askPrompt = (contextText, question) =>
 export async function ask(req, res) {
   requireAi();
   const data = await loadAskData(req.wedding);
-  const { text, refs } = buildAskContext(data);
+  // The whole wedding, or (for big weddings) the records closest in meaning to the question.
+  const { context } = await contextForQuestion({ wedding: req.wedding, question: req.body.question, data });
+  const { text, refs } = context;
   // Archived weddings are read-only, so the model isn't offered any changes there.
   const canChange = req.wedding.status !== 'archived';
 

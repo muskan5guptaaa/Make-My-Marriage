@@ -295,6 +295,16 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 .plan-main { flex: 1 1 auto; min-width: 0; }
 .plan-main p { margin: 4px 0 0; }
 .plan-row.dropped .plan-main, .plan-row.dropped > input[type='date'] { opacity: 0.5; }
+.smart-fields { display: flex; flex-direction: column; gap: 8px; }
+.smart-line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.smart-line input:not([type='number']) { flex: 1 1 180px; min-width: 0; }
+.smart-line input[type='number'] { flex: 0 0 72px; width: 72px; }
+.smart-line select { flex: 0 1 140px; width: auto; }
+.smart-fields input[aria-invalid='true'] { border-color: var(--bad); }
+.smart-fields .field-error, .smart-fields .task-fn { margin: 0; }
+.smart-photo p { margin: 0 0 6px; }
+.invite-ai { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin: 14px 0 18px; }
+.invite-ai .field { width: 100%; margin: 0; }
 @media (max-width: 560px) {
   .plan-row { flex-wrap: wrap; }
   .plan-row > input[type='date'] { margin-left: 28px; }
@@ -395,6 +405,17 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 .split-bar .groom-side, .dot.groom-side { background: var(--gold); }
 .split-bar .shared, .dot.shared { background: var(--border); }
 .sub-title { font-size: 17px; font-weight: 600; margin: 0; }
+.insights-card { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+.insights-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.insights-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.insights-list:empty { display: none; }
+.insights-list li { padding-left: 12px; border-left: 3px solid var(--border); }
+.insights-list li.bad { border-left-color: var(--bad); }
+.insights-list li.warn { border-left-color: var(--gold); }
+.insights-ai { border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.insights-ai h3 { margin: 0; font-weight: 600; }
+.insights-ai ul { margin: 0; padding-left: 20px; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+.insights-ai p { margin: 0; }
 .cat-card { display: flex; flex-direction: column; gap: 16px; padding: 22px 24px; }
 .cat-line { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
 .cat-row .bar { margin-top: 0; }

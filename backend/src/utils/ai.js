@@ -38,10 +38,11 @@ export async function streamAnswer({ system, prompt, tools, signal }) {
 
 // Asks for one JSON object shaped like `schema` (Gemini's OpenAPI-style schema) and returns it
 // parsed. The caller still validates it: valid JSON can still hold wrong values.
-export async function generateJson({ system, prompt, schema, signal }) {
-  if (env.isTest) return fakeJson({ system, prompt, schema });
+// `images` ([{ mimeType, data }], data in base64) are sent with the prompt for the model to read.
+export async function generateJson({ system, prompt, schema, images, signal }) {
+  if (env.isTest) return fakeJson({ system, prompt, schema, images });
   return withModels(signal, async (model) => {
-    const res = await post(model, 'generateContent', requestBody({ system, prompt, schema }), signal);
+    const res = await post(model, 'generateContent', requestBody({ system, prompt, schema, images }), signal);
     const text = textOfEvent(await res.json());
     try {
       return JSON.parse(text);
@@ -52,9 +53,32 @@ export async function generateJson({ system, prompt, schema, signal }) {
   });
 }
 
-const requestBody = ({ system, prompt, schema, tools }) => ({
+// Turns texts into vectors (lists of numbers) whose closeness means closeness in meaning.
+// task 'document' for stored records, 'query' for a question, as the model expects.
+export const EMBEDDING_DIMENSIONS = 768;
+const EMBED_BATCH = 100; // the most texts one request may carry
+
+export async function embedTexts(texts, { task = 'document', signal } = {}) {
+  if (env.isTest) return fakeEmbed(texts, task);
+  const model = env.gemini.embeddingModel;
+  const vectors = [];
+  for (let i = 0; i < texts.length; i += EMBED_BATCH) {
+    const requests = texts.slice(i, i + EMBED_BATCH).map((text) => ({
+      model: `models/${model}`,
+      content: { parts: [{ text }] },
+      taskType: task === 'query' ? 'RETRIEVAL_QUERY' : 'RETRIEVAL_DOCUMENT',
+      outputDimensionality: EMBEDDING_DIMENSIONS,
+    }));
+    const res = await post(model, 'batchEmbedContents', { requests }, signal);
+    const { embeddings } = await res.json();
+    vectors.push(...embeddings.map((e) => e.values));
+  }
+  return vectors;
+}
+
+const requestBody = ({ system, prompt, schema, tools, images = [] }) => ({
   systemInstruction: { parts: [{ text: system }] },
-  contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  contents: [{ role: 'user', parts: [...images.map((inlineData) => ({ inlineData })), { text: prompt }] }],
   ...(tools?.length ? { tools: [{ functionDeclarations: tools }] } : {}),
   generationConfig: schema
     ? { temperature: 0.2, responseMimeType: 'application/json', responseSchema: schema }
@@ -164,7 +188,23 @@ const textOfEvent = (event) => partsOfEvent(event).map((p) => p.text ?? '').join
 
 // Test stand-in: set `fake.reply` (text), `fake.toolCalls` ([{ name, args }], sent after the
 // text) or `fake.json` (an object) before a request; each request is recorded in `fake.calls`.
-export const fake = { reply: '', toolCalls: [], json: null, calls: [] };
+// Embeddings are word counts hashed into the vector, so texts sharing words come out close;
+// each embedding request is recorded in `fake.embedCalls`, and `fake.embedError` makes it fail.
+export const fake = { reply: '', toolCalls: [], json: null, calls: [], embedCalls: [], embedError: null };
+
+function fakeEmbed(texts, task) {
+  fake.embedCalls.push({ texts, task });
+  if (fake.embedError) throw fake.embedError;
+  return texts.map((text) => {
+    const v = new Array(EMBEDDING_DIMENSIONS).fill(0);
+    for (const word of text.toLowerCase().match(/\p{L}{3,}/gu) ?? []) {
+      let h = 0;
+      for (const ch of word) h = (h * 31 + ch.codePointAt(0)) % EMBEDDING_DIMENSIONS;
+      v[h] += 1;
+    }
+    return v;
+  });
+}
 
 async function fakeJson(request) {
   fake.calls.push(request);

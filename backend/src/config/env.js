@@ -27,6 +27,17 @@ export const env = {
       .split(',')
       .map((m) => m.trim())
       .filter(Boolean),
+    // Turns records into vectors for search by meaning (free on the same key).
+    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
+  },
+  ai: {
+    // Search by meaning for "Ask your wedding":
+    //   auto   — only for weddings too big to send whole (most weddings are sent whole)
+    //   always — every question, when the index is ready (to compare on the eval set)
+    //   off    — always send the whole wedding
+    // Whenever search isn't ready or fails, the whole wedding is sent instead.
+    rag: ['auto', 'always', 'off'].includes(process.env.AI_RAG) ? process.env.AI_RAG : 'auto',
+    ragMinChars: Number(process.env.AI_RAG_MIN_CHARS ?? 30_000),
   },
   smtp: {
     host: process.env.SMTP_HOST ?? '',
