@@ -70,7 +70,7 @@ export async function weddingDateRange(weddingId) {
 }
 
 // Copies validated body fields onto the document and re-derives startsAt and the video id.
-function apply(fn, body, timezone) {
+export function apply(fn, body, timezone) {
   for (const key of EDITABLE) {
     if (body[key] !== undefined) fn[key] = body[key] ?? undefined; // null clears the field
   }

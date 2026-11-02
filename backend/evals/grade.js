@@ -40,3 +40,34 @@ export function grade(answer, q, refs) {
 
   return { pass: problems.length === 0, problems, cited: cited.size };
 }
+
+// Scores the plan suggested for one request in agentQuestions.json: every expected step must be
+// there, on the right record with the right fields, and nothing else may be suggested.
+export function gradePlan(proposals, q, wedding) {
+  const problems = [];
+  const names = {
+    function: new Map(wedding.functions.map((f) => [String(f._id), f.name])),
+    task: new Map(wedding.tasks.map((t) => [String(t._id), t.title])),
+    expense: new Map(wedding.expenses.map((e) => [String(e._id), e.vendorName])),
+  };
+  const recordOf = (p) => Object.entries(p.ids ?? {}).map(([kind, id]) => names[kind]?.get(String(id)));
+  const left = [...proposals];
+  for (const want of q.steps) {
+    const label = `${want.kind} ${want.function ?? want.task ?? want.expense ?? ''}`.trim();
+    const record = want.function ?? want.task ?? want.expense;
+    const i = left.findIndex((p) => p.kind === want.kind && (!record || recordOf(p).includes(record)));
+    if (i < 0) {
+      problems.push(`missing step: ${label}`);
+      continue;
+    }
+    const [p] = left.splice(i, 1);
+    for (const [key, value] of Object.entries(want.body ?? {})) {
+      if (p.body[key] !== value) problems.push(`${label}: ${key} is ${JSON.stringify(p.body[key])}, expected ${JSON.stringify(value)}`);
+    }
+    for (const [key, words] of Object.entries(want.contains ?? {})) {
+      for (const w of words) if (!contains(String(p.body[key] ?? ''), w)) problems.push(`${label}: ${key} doesn't mention "${w}"`);
+    }
+  }
+  for (const p of left) problems.push(`unexpected step: ${p.title}`);
+  return { pass: problems.length === 0, problems, cited: 0 };
+}

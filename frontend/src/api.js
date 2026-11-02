@@ -74,6 +74,10 @@ async function askWedding(weddingId, question, { onText, signal } = {}) {
 
 export const api = {
   askWedding,
+  // An approved plan from Ask ({ question, steps }): saved all or none → { run, whatsapp }.
+  applyPlan: (weddingId, body) => request(`/weddings/${weddingId}/ask/apply`, { method: 'POST', body }),
+  listAgentRuns: (weddingId) => request(`/weddings/${weddingId}/ask/runs`),
+  undoAgentRun: (weddingId, runId) => request(`/weddings/${weddingId}/ask/runs/${runId}/undo`, { method: 'POST' }),
   register: (body) => request('/auth/register', { method: 'POST', body }),
   login: (body) => request('/auth/login', { method: 'POST', body }),
   logout: () => request('/auth/logout', { method: 'POST' }),

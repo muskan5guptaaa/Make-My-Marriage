@@ -16,7 +16,8 @@ A wedding-planning web app for Indian weddings. Couples and their family plan ev
 | Tasks | Due dates, assignees, linked to a function, overdue tracking |
 | Expenses | Budget against actual spend per category and function, paid by bride or groom side, payment status |
 | Gallery | An album per function plus general albums. Photos upload straight to Cloudinary. The couple decides which guests can view or upload |
-| Ask your wedding (AI) | Ask a question in plain words, get a short answer with links to the records it came from. Ask for a change ("mark the caterer as paid") and approve it before it's saved |
+| Ask your wedding (AI) | Ask a question in plain words, get a short answer with links to the records it came from |
+| Planning agent (AI) | Ask for changes ("move the Haldi to Sunday 10 am and tell everyone"): the assistant suggests a plan of numbered steps, you check and edit it, then every step is saved together. Guests are emailed (or sent on WhatsApp) last. One tap undoes it |
 | Task plan (AI) | Draft tasks for upcoming functions with due dates counted back from each one; edit, then save |
 | Smart guest import (AI) | Paste a WhatsApp list or upload a photo of a handwritten one; check the rows, then import. Phone numbers in pasted text are hidden from the AI |
 | Invitation words (AI) | Pick a tone and get the email and WhatsApp invitation text; edit and save, and every invitation uses it |
@@ -53,6 +54,26 @@ Question → sign-in and wedding check → load this wedding's records
 - **All AI calls go through one file,** [`backend/src/utils/ai.js`](backend/src/utils/ai.js), so changing AI provider means changing only that file. Each free Gemini model allows about 20 requests a day, so the app moves to the next model in `GEMINI_MODELS` when one runs out.
 
 **Measuring quality:** [`backend/evals/`](backend/evals/) has 50 questions about a made-up wedding whose answers are known. `npm run eval` asks the real model each question and checks the answers with simple rules (does it say "12"? does it cite the Sangeet?). Run it after changing the prompt or the data summary. 50 questions is more than one day's free allowance for one model; if it runs out, the run saves what it has and prints a `--resume` command for the next day. The V2 target is 90% correct with no answer citing a record that doesn't exist.
+
+### Planning agent (changes with approval and undo)
+
+When a question asks for changes, the AI calls tools (`create_task`, `update_task`, `update_expense`, `set_rsvp`, `update_function`, `message_guests`) instead of answering only. Nothing is saved at that point:
+
+```
+Request → Gemini picks tools and their order (one request: plan, then run)
+        → code turns each call into a step, with the same checks as the matching page
+        → the page shows the plan: numbered steps, old → new values, the message to edit
+        → Apply: POST /ask/apply saves every step in one transaction (all or none)
+        → then messages go out: email where possible, WhatsApp links for the rest
+        → Undo: POST /ask/runs/:id/undo puts back the old values
+```
+
+- **The AI names records by their labels** (`[F2]`), so it can only point at this wedding's records. Code turns labels into ids.
+- **Every step runs the same code as the page it belongs to**, with the signed-in person's own access. Archived weddings can't be changed.
+- **Each plan is kept in the `agentruns` collection** with the values it replaced, but never phone numbers or emails. Undo leaves a record alone if someone edited it afterwards, and says so.
+- **Messages can't be undone,** so they always go last and only after everything else has been saved.
+
+`npm run eval -- --agent` asks the model the change requests in [`evals/agentQuestions.json`](backend/evals/agentQuestions.json) and checks that the plan has the right steps, records and values.
 
 ### Search by meaning (RAG)
 
@@ -152,4 +173,4 @@ The repo deploys to Vercel as one project with two services (see [`vercel.json`]
 ## Roadmap
 
 - **V2 (built):** search by meaning with embeddings and Atlas Vector Search, guest-list import from a photo or pasted text, task plan generator, invitation writer, budget insights. Done when the 50-question eval passes the gate.
-- **V3:** a planning agent that can make changes after the couple approves them, RSVP chat for guests, Hindi and English voice, photo search by what's in the picture
+- **V3 (in progress):** planning agent with approval and undo (built), day-of planner, RSVP chat for guests, eval dashboard, photo search by what's in the picture, Hindi and English voice

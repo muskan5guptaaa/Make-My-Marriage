@@ -102,7 +102,7 @@ function toExpense(e) {
 const populated = (query) => query.populate('category', 'name').populate('function', 'name').populate('createdBy', 'name');
 
 // Category and function must belong to this wedding (MongoDB has no foreign keys).
-async function checkReferences(weddingId, body) {
+export async function checkReferences(weddingId, body) {
   const fields = {};
   if (body.category && !(await ExpenseCategory.exists({ _id: body.category, wedding: weddingId }))) {
     fields.category = 'Choose a category from this wedding.';
@@ -113,7 +113,7 @@ async function checkReferences(weddingId, body) {
   if (Object.keys(fields).length > 0) throw badRequest('Some fields need fixing.', fields);
 }
 
-function apply(expense, body) {
+export function apply(expense, body) {
   for (const key of EDITABLE) {
     if (body[key] !== undefined) expense[key] = body[key] ?? undefined; // null clears the field
   }
