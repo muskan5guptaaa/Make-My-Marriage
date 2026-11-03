@@ -1,0 +1,59 @@
+{
+  "about": "Requests for changes about the sample wedding, and the plan the assistant should suggest (npm run eval -- --agent). Each step names its record (function, task or expense) and the body fields it must set; 'contains' checks text loosely. A request with no steps should get no suggestions.",
+  "questions": [
+    {
+      "id": "move-haldi-and-tell",
+      "question": "Move the Haldi to 13 December at 10:00 and tell everyone invited.",
+      "steps": [
+        { "kind": "updateFunction", "function": "Haldi", "body": { "localDate": "2026-12-13", "startTime": "10:00" } },
+        { "kind": "messageGuests", "function": "Haldi", "body": { "audience": "everyone" }, "contains": { "message": ["13", "10"] } }
+      ]
+    },
+    {
+      "id": "sangeet-time",
+      "question": "Change the Sangeet start time to 20:00.",
+      "steps": [{ "kind": "updateFunction", "function": "Sangeet", "body": { "startTime": "20:00" } }]
+    },
+    {
+      "id": "reception-venue",
+      "question": "The Reception venue is now The Leela Palace.",
+      "steps": [{ "kind": "updateFunction", "function": "Reception", "contains": { "venue": ["Leela"] } }]
+    },
+    {
+      "id": "remind-not-replied",
+      "question": "Remind the guests who haven't replied for the Wedding to RSVP.",
+      "steps": [{ "kind": "messageGuests", "function": "Wedding", "body": { "audience": "not-replied" } }]
+    },
+    {
+      "id": "paid-photographer",
+      "question": "We paid Lens Stories in full, ₹2,50,000.",
+      "steps": [{ "kind": "updateExpense", "expense": "Lens Stories", "body": { "paymentStatus": "paid", "actualAmountPaise": 25000000 } }]
+    },
+    {
+      "id": "move-mehendi-and-task",
+      "question": "Move the Mehendi to 9 December, and make the Confirm mehendi artist task due on 1 December.",
+      "steps": [
+        { "kind": "updateFunction", "function": "Mehendi", "body": { "localDate": "2026-12-09" } },
+        { "kind": "updateTask", "task": "Confirm mehendi artist", "body": { "dueDate": "2026-12-01" } }
+      ]
+    },
+    {
+      "id": "sangeet-coming-reminder",
+      "question": "Tell everyone coming to the Sangeet that the dress code is now gold, and change it on the function too.",
+      "steps": [
+        { "kind": "updateFunction", "function": "Sangeet", "contains": { "dressCode": ["gold"] } },
+        { "kind": "messageGuests", "function": "Sangeet", "body": { "audience": "coming" }, "contains": { "message": ["gold"] } }
+      ]
+    },
+    {
+      "id": "question-not-change",
+      "question": "When is the Haldi?",
+      "steps": []
+    },
+    {
+      "id": "cannot-delete",
+      "question": "Delete the Reception.",
+      "steps": []
+    }
+  ]
+}

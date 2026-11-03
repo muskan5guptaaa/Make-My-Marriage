@@ -4,6 +4,7 @@ import { api } from '../../api.js';
 import { useWedding } from '../../layout/WeddingContext.js';
 import Answer from './Answer.jsx';
 import Proposals from './Proposals.jsx';
+import RecentChanges from './RecentChanges.jsx';
 
 const STARTERS = [
   'Who hasn’t replied for the next function?',
@@ -12,6 +13,7 @@ const STARTERS = [
   'Are we over budget anywhere?',
   'Who needs accommodation?',
   'Mark all overdue tasks as in progress',
+  'Move the next function by one day and tell the guests',
 ];
 
 // Where each kind of cited record lives in the app.
@@ -75,7 +77,7 @@ export default function Ask() {
           <h1 className="page-title">Ask your wedding</h1>
           <p className="muted">
             Answers come only from your guests, functions, tasks, expenses and photo albums, with links to where each answer came from.
-            Ask for changes too, like “mark the caterer as paid”: you approve each one before it’s saved.
+            Ask for changes too, like “move the Haldi to Sunday 10 am and tell everyone”: you check the plan before anything is saved, and can undo it.
           </p>
         </div>
       </div>
@@ -92,6 +94,8 @@ export default function Ask() {
           </div>
         </section>
       )}
+
+      {turns.length === 0 && <RecentChanges weddingId={wedding._id} canChange={wedding.status !== 'archived'} />}
 
       {turns.length > 0 && (
         <ol className="ask-thread" aria-live="polite">
@@ -117,7 +121,7 @@ export default function Ask() {
                   </div>
                 )}
                 {(t.proposals.length > 0 || t.skipped.length > 0) && (
-                  <Proposals weddingId={wedding._id} proposals={t.proposals} skipped={t.skipped} />
+                  <Proposals weddingId={wedding._id} question={t.question} proposals={t.proposals} skipped={t.skipped} />
                 )}
               </div>
             </li>

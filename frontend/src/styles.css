@@ -628,3 +628,11 @@ textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3
 .ask-form textarea { resize: vertical; min-height: 52px; }
 .ask-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .ask-actions .muted { flex: 1 1 240px; }
+
+/* Ask: plans and their history */
+.step-no { color: var(--muted); font-weight: 600; margin-right: 2px; }
+.ask-proposals textarea { margin-top: 8px; width: 100%; }
+.ask-whatsapp ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 0; padding: 0; }
+.ask-whatsapp p { margin: 0; }
+.recent-runs { margin-top: 16px; }
+.recent-runs .plan-row { align-items: center; }

@@ -3,6 +3,7 @@
 //
 //   npm run eval                          all questions, whole wedding sent (today's approach)
 //   npm run eval -- --rag                 search by meaning: only the closest records are sent
+//   npm run eval -- --agent               change requests (evals/agentQuestions.json): is the suggested plan right?
 //   npm run eval -- --rag --k 15          ...keeping 15 records per question (default 10)
 //   npm run eval -- --only budget-left    just these ids (comma-separated)
 //   npm run eval -- --model gemini-3.5-flash-lite   score one model (no switching to the next)
@@ -14,11 +15,12 @@
 // The free Gemini plan allows only a few requests a minute, so questions are spaced out.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { env } from '../src/config/env.js';
-import { SYSTEM_PROMPT, askPrompt } from '../src/controllers/ask.controller.js';
+import { ACTION_SYSTEM_PROMPT, SYSTEM_PROMPT, askPrompt } from '../src/controllers/ask.controller.js';
+import { ASK_TOOLS, toProposals } from '../src/utils/askActions.js';
 import { embedTexts, streamAnswer } from '../src/utils/ai.js';
 import { buildAskContext } from '../src/utils/askContext.js';
 import { chunkText } from '../src/utils/aiIndex.js';
-import { grade } from '../evals/grade.js';
+import { grade, gradePlan } from '../evals/grade.js';
 import { sampleWedding } from '../evals/sampleWedding.js';
 
 const GAP_MS = 12_000;
@@ -26,6 +28,7 @@ const has = (name) => process.argv.includes(`--${name}`);
 const arg = (name) => process.argv[process.argv.indexOf(`--${name}`) + 1];
 const only = has('only') ? arg('only').split(',') : null;
 const rag = has('rag');
+const agent = has('agent');
 const k = has('k') ? Number(arg('k')) : 10;
 if (has('model')) env.gemini.models = [arg('model')];
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -35,7 +38,7 @@ if (!env.gemini.apiKey) {
   process.exit(1);
 }
 
-const { questions } = JSON.parse(await readFile(new URL('../evals/questions.json', import.meta.url), 'utf8'));
+const { questions } = JSON.parse(await readFile(new URL(agent ? '../evals/agentQuestions.json' : '../evals/questions.json', import.meta.url), 'utf8'));
 const previous = has('resume') ? JSON.parse(await readFile(arg('resume'), 'utf8')) : null;
 // Resuming keeps every answer that got through; questions that never got an answer run again.
 const kept = (previous?.results ?? []).filter((r) => !r.problems.some((p) => p.startsWith('request failed')));
@@ -64,7 +67,7 @@ async function contextFor(question) {
   return buildAskContext(sampleWedding, { keep }).text;
 }
 
-const mode = rag ? `search by meaning, ${k} records per question` : 'whole wedding';
+const mode = `${agent ? 'change requests · ' : ''}${rag ? `search by meaning, ${k} records per question` : 'whole wedding'}`;
 console.log(`Models ${env.gemini.models.join(' → ')} · ${mode} · ${chosen.length} questions${done.size ? ` (${done.size} already answered)` : ''}\n`);
 const results = [...kept];
 let stoppedEarly = false;
@@ -74,18 +77,27 @@ for (const [i, q] of chosen.entries()) {
   let firstMs = null;
   let answer = '';
   let error = null;
+  const calls = [];
   try {
     const text = await contextFor(q.question);
-    for await (const piece of await streamAnswer({ system: SYSTEM_PROMPT, prompt: askPrompt(text, q.question) })) {
+    const request = agent
+      ? { system: ACTION_SYSTEM_PROMPT, prompt: askPrompt(text, q.question), tools: ASK_TOOLS }
+      : { system: SYSTEM_PROMPT, prompt: askPrompt(text, q.question) };
+    for await (const piece of await streamAnswer(request)) {
       firstMs ??= Date.now() - started;
-      answer += piece;
+      if (typeof piece === 'string') answer += piece;
+      else calls.push(piece);
     }
   } catch (err) {
     error = err;
   }
   const totalMs = Date.now() - started;
-  const result = error ? { pass: false, problems: [`request failed: ${error.message}`], cited: 0 } : grade(answer, q, refs);
-  results.push({ id: q.id, question: q.question, answer, ...result, firstMs, totalMs });
+  // Change requests are scored on the plan, after the same checks the app runs on it.
+  const plan = agent && !error ? toProposals(calls, { ...sampleWedding, refs }) : null;
+  const result = error
+    ? { pass: false, problems: [`request failed: ${error.message}`], cited: 0 }
+    : agent ? gradePlan(plan.proposals, q, sampleWedding) : grade(answer, q, refs);
+  results.push({ id: q.id, question: q.question, answer, ...(plan ?? {}), ...result, firstMs, totalMs });
 
   console.log(`${result.pass ? '✔' : '✖'} ${q.id}  (${(totalMs / 1000).toFixed(1)}s)`);
   if (!result.pass) {
@@ -116,12 +128,12 @@ const summary = {
   answered: answeredOk.length,
   total: only ? only.length : questions.length,
   accuracy: `${Math.round((passed / Math.max(answeredOk.length, 1)) * 100)}%`,
-  withValidSource: `${Math.round((withSource / Math.max(answeredOk.length, 1)) * 100)}%`,
+  withValidSource: agent ? 'n/a' : `${Math.round((withSource / Math.max(answeredOk.length, 1)) * 100)}%`,
   medianFirstTextSeconds: +(median(answered.map((r) => r.firstMs)) / 1000).toFixed(1),
   medianTotalSeconds: +(median(answered.map((r) => r.totalMs)) / 1000).toFixed(1),
 };
 console.log(`\n${passed}/${answeredOk.length} answered questions passed (${summary.accuracy}) · first text after ${summary.medianFirstTextSeconds}s · full answer ${summary.medianTotalSeconds}s (medians)`);
-console.log(`V2 gate: 90% correct${answeredOk.length < summary.total ? ` once all ${summary.total} are answered` : ''}, and no answer citing a record that doesn't exist.`);
+if (!agent) console.log(`V2 gate: 90% correct${answeredOk.length < summary.total ? ` once all ${summary.total} are answered` : ''}, and no answer citing a record that doesn't exist.`);
 
 const dir = new URL('../evals/results/', import.meta.url);
 await mkdir(dir, { recursive: true });
@@ -130,5 +142,5 @@ await writeFile(file, JSON.stringify({ summary, results }, null, 2));
 const saved = `evals/results/${file.pathname.split('/').pop()}`;
 console.log(`Saved to ${saved}`);
 if (stoppedEarly) {
-  console.log(`\nToday's free allowance ran out after ${answeredOk.length} answers. Tomorrow, carry on with:\n  npm run eval -- ${rag ? `--rag --k ${k} ` : ''}--resume ${saved}`);
+  console.log(`\nToday's free allowance ran out after ${answeredOk.length} answers. Tomorrow, carry on with:\n  npm run eval -- ${agent ? '--agent ' : ''}${rag ? `--rag --k ${k} ` : ''}--resume ${saved}`);
 }

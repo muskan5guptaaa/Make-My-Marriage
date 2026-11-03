@@ -1,6 +1,7 @@
 // The changes "Ask your wedding" may suggest, and the checks that turn what the model asked for
 // into proposals the page shows for approval. Nothing here saves anything: once approved, the
-// page sends each change to the normal API (tasks, expenses, RSVPs), which checks it again.
+// page sends them as one plan to askRun.js, which checks each change again with the same rules as
+// the normal API, saves them all or none, and keeps what they replaced so the plan can be undone.
 //
 // The model names records by the references in the wedding data ([T3], [F1], …), never by id, so
 // it can only point at records of this wedding that it was shown.
@@ -9,9 +10,20 @@ import { rupees } from './askContext.js';
 import { isRealDate } from './time.js';
 import { updateExpenseSchema } from '../validators/expense.schemas.js';
 import { rsvpSchema } from '../validators/guest.schemas.js';
+import { updateFunctionSchema } from '../validators/function.schemas.js';
 import { createTaskSchema, TASK_STATUSES, updateTaskSchema } from '../validators/task.schemas.js';
 
 export const MAX_PROPOSALS = 20;
+export const MESSAGE_AUDIENCES = ['everyone', 'coming', 'not-replied'];
+const AUDIENCE_RSVP = { coming: 'yes', 'not-replied': 'pending' };
+
+// The guests a message to one function goes to (stored guests, with their RSVPs).
+export const messageRecipients = (guests, functionId, audience) =>
+  guests.filter((g) => {
+    if (!g.invitedFunctions?.some((f) => String(f) === String(functionId))) return false;
+    const status = g.rsvps?.find((r) => String(r.function) === String(functionId))?.status ?? 'pending';
+    return !AUDIENCE_RSVP[audience] || status === AUDIENCE_RSVP[audience];
+  });
 
 const S = (description, extra = {}) => ({ type: 'STRING', description, ...extra });
 const DATE = 'A date as YYYY-MM-DD, or "none" to clear it.';
@@ -80,6 +92,36 @@ export const ASK_TOOLS = [
       required: ['guestRef', 'functionRef', 'status'],
     },
   },
+  {
+    name: 'update_function',
+    description: 'Suggest moving or changing one function (Haldi, Sangeet…). Send only the fields that change.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        functionRef: S('The function, like "F2".'),
+        date: S('New date as YYYY-MM-DD.'),
+        startTime: S('New start time as HH:mm (24-hour), or "none" to clear it.'),
+        venue: S('New venue.'),
+        dressCode: S('New dress code.'),
+      },
+      required: ['functionRef'],
+    },
+  },
+  {
+    name: 'message_guests',
+    description:
+      'Suggest a message to the guests invited to one function, sent by email (and WhatsApp for guests without email). ' +
+      'Each guest is greeted by name and gets their own RSVP link automatically.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        functionRef: S('The function, like "F2".'),
+        audience: S('Who gets it: everyone invited, only those coming, or only those who haven\'t replied.', { enum: MESSAGE_AUDIENCES }),
+        message: S('The message, warm and short, written as the couple. No greeting, no guest names, no links.'),
+      },
+      required: ['functionRef', 'message'],
+    },
+  },
 ];
 
 const TASK_STATUS = { todo: 'To do', 'in-progress': 'In progress', done: 'Done' };
@@ -115,7 +157,8 @@ export function toProposals(calls, context) {
       skipped.push(err.message);
     }
   }
-  return { proposals, skipped };
+  // Messages go out last, once everything they announce has been saved.
+  return { proposals: [...proposals.filter((p) => !p.cannotUndo), ...proposals.filter((p) => p.cannotUndo)], skipped };
 }
 
 // "[T3]", " t3 " → the record behind it, if it is of the expected kind.
@@ -269,5 +312,55 @@ const BUILDERS = {
     }
     checked(rsvpSchema, body);
     return { kind: 'setRsvp', ids: { guest: guest.id, function: fn.id }, body, title: `RSVP: ${guest.label}`, changes };
+  },
+
+  // Shows each change as old → new, so the couple sees exactly what moves.
+  update_function(args, { refs, functions }) {
+    const fn = record(refs, args.functionRef, 'function', 'function');
+    const stored = functions.find((f) => String(f._id) === fn.id);
+    const name = stored?.name ?? fn.label.split(' · ')[0];
+    const body = {};
+    const changes = [];
+    if (args.date && args.date !== stored?.localDate) {
+      body.localDate = date(args.date);
+      if (!body.localDate) throw new Skip(`A function needs a date, so the ${name} can't lose its date.`);
+      changes.push(`Date ${day(stored?.localDate)} → ${day(body.localDate)}`);
+    }
+    if (args.startTime !== undefined) {
+      const time = CLEAR.test(String(args.startTime).trim()) ? null : String(args.startTime).trim();
+      if (time !== (stored?.startTime ?? null)) {
+        body.startTime = time;
+        changes.push(`Time ${stored?.startTime ?? 'not set'} → ${time ?? 'not set'}`);
+      }
+    }
+    for (const [key, label] of [['venue', 'Venue'], ['dressCode', 'Dress code']]) {
+      const value = args[key] === undefined ? undefined : String(args[key]).trim();
+      if (value && value !== stored?.[key]) {
+        body[key] = value;
+        changes.push(`${label} ${stored?.[key] ?? 'not set'} → ${value}`);
+      }
+    }
+    if (changes.length === 0) throw new Skip(`The assistant didn't say what to change on the ${name}.`);
+    checked(updateFunctionSchema, body);
+    return { kind: 'updateFunction', ids: { function: fn.id }, body, title: `Change ${name}`, changes };
+  },
+
+  // Guests are counted here from the stored list; the AI never sees who has an email or phone.
+  message_guests(args, { refs, guests }) {
+    const fn = record(refs, args.functionRef, 'function', 'function');
+    const name = fn.label.split(' · ')[0];
+    const audience = MESSAGE_AUDIENCES.includes(args.audience) ? args.audience : 'everyone';
+    const message = String(args.message ?? '').trim();
+    if (!message) throw new Skip(`The assistant didn't write the message for the ${name} guests.`);
+    if (message.length > 1000) throw new Skip('The message is too long; keep it under 1,000 characters.');
+    const to = messageRecipients(guests, fn.id, audience);
+    const who = { everyone: 'invited to', coming: 'coming to', 'not-replied': "who haven't replied for" }[audience];
+    if (to.length === 0) throw new Skip(`No guests ${who} the ${name}, so there's nobody to message.`);
+    const byEmail = to.filter((g) => g.email).length;
+    const changes = [
+      `${to.length} guest${to.length === 1 ? '' : 's'} ${who} the ${name}`,
+      byEmail === to.length ? 'All by email' : `${byEmail} by email, ${to.length - byEmail} on WhatsApp (you press send)`,
+    ];
+    return { kind: 'messageGuests', ids: { function: fn.id }, body: { audience, message }, title: `Message guests: ${name}`, changes, cannotUndo: true };
   },
 };

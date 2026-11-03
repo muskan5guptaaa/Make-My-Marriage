@@ -186,8 +186,8 @@ describe('ask: suggesting changes', () => {
     ];
     const res = await ask('Mark the mehendi task done for Aisha, add a haldi paste task, we paid Taj 50k, Meera is coming to the Sangeet').expect(200);
 
-    assert.deepEqual(fake.calls[0].tools.map((t) => t.name), ['create_task', 'update_task', 'update_expense', 'set_rsvp']);
-    assert.match(fake.calls[0].system, /nothing is saved until the person approves them/);
+    assert.deepEqual(fake.calls[0].tools.map((t) => t.name), ['create_task', 'update_task', 'update_expense', 'set_rsvp', 'update_function', 'message_guests']);
+    assert.match(fake.calls[0].system, /nothing is saved or sent until the person approves them/);
     const evs = events(res);
     assert.deepEqual(evs.map((e) => e.type).slice(-3), ['sources', 'proposals', 'done']);
     const { proposals, skipped } = evs.find((e) => e.type === 'proposals');
@@ -314,5 +314,38 @@ describe('eval set', () => {
       "doesn't cite Kabir Singh [G1]",
     ]);
     assert.equal(grade("I couldn't find that in your wedding data.", { notFound: true }, refs).pass, true);
+  });
+
+  it('grades suggested plans by their steps, after the same checks the app runs', async () => {
+    const { gradePlan } = await import('../evals/grade.js');
+    const { sampleWedding } = await import('../evals/sampleWedding.js');
+    const { readFile } = await import('node:fs/promises');
+    const { toProposals } = await import('../src/utils/askActions.js');
+    const { questions } = JSON.parse(await readFile(new URL('../evals/agentQuestions.json', import.meta.url), 'utf8'));
+    const { refs } = buildAskContext(sampleWedding);
+    const ref = (name) => [...refs].find(([, r]) => r.kind === 'function' && r.label.startsWith(`${name} ·`))[0];
+    const plan = (calls) => toProposals(calls, { ...sampleWedding, refs }).proposals;
+    const q = questions.find((x) => x.id === 'move-haldi-and-tell');
+
+    const good = plan([
+      { name: 'update_function', args: { functionRef: ref('Haldi'), date: '2026-12-13', startTime: '10:00' } },
+      { name: 'message_guests', args: { functionRef: ref('Haldi'), message: 'The Haldi is now on 13 December at 10 am.' } },
+    ]);
+    assert.deepEqual(gradePlan(good, q, sampleWedding), { pass: true, problems: [], cited: 0 });
+    const wrong = plan([
+      { name: 'update_function', args: { functionRef: ref('Wedding'), date: '2026-12-13' } },
+      { name: 'message_guests', args: { functionRef: ref('Haldi'), message: 'Change of plans!' } },
+    ]);
+    assert.deepEqual(gradePlan(wrong, q, sampleWedding).problems, [
+      'missing step: updateFunction Haldi',
+      'messageGuests Haldi: message doesn\'t mention "13"',
+      'messageGuests Haldi: message doesn\'t mention "10"',
+      'unexpected step: Change Wedding',
+    ]);
+    assert.equal(gradePlan([], questions.find((x) => x.id === 'cannot-delete'), sampleWedding).pass, true);
+
+    // Every record a question expects exists in the sample wedding.
+    const names = [...sampleWedding.functions.map((f) => f.name), ...sampleWedding.tasks.map((t) => t.title), ...sampleWedding.expenses.map((e) => e.vendorName)];
+    for (const step of questions.flatMap((x) => x.steps)) assert.ok(names.includes(step.function ?? step.task ?? step.expense), JSON.stringify(step));
   });
 });

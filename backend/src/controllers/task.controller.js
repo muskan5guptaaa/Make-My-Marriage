@@ -33,7 +33,7 @@ const populated = (query) =>
 const byDue = (a, b) => (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999') || a.createdAt - b.createdAt;
 
 // The function and assignee must belong to this wedding (MongoDB has no foreign keys).
-async function checkReferences(wedding, body) {
+export async function checkReferences(wedding, body) {
   const fields = {};
   if (body.function) {
     if (!(await WeddingFunction.exists({ _id: body.function, wedding: wedding._id }))) {
@@ -47,7 +47,7 @@ async function checkReferences(wedding, body) {
   if (Object.keys(fields).length > 0) throw badRequest('Some fields need fixing.', fields);
 }
 
-function apply(task, body) {
+export function apply(task, body) {
   for (const key of EDITABLE) {
     if (body[key] !== undefined) task[key] = body[key] ?? undefined; // null clears the field
   }
