@@ -4,6 +4,7 @@ import AppShell from './layout/AppShell.jsx';
 import Ask from './pages/ask/Ask.jsx';
 import CreateWedding from './pages/CreateWedding.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import DayPlan from './pages/DayPlan.jsx';
 import Expenses from './pages/expenses/Expenses.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import Functions from './pages/Functions.jsx';
@@ -45,6 +46,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="ask" element={<Ask />} />
           <Route path="functions" element={<Functions />} />
+          <Route path="day-plan" element={<DayPlan />} />
           <Route path="tasks" element={<Tasks />} />
           <Route path="guests" element={<Guests />} />
           <Route path="expenses" element={<Expenses />} />

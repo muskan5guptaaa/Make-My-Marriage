@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 import { askRouter } from './routes/ask.routes.js';
 import { authRouter } from './routes/auth.routes.js';
+import { dayPlanRouter } from './routes/dayPlan.routes.js';
 import { expenseRouter } from './routes/expense.routes.js';
 import { functionRouter } from './routes/function.routes.js';
 import { guestRouter } from './routes/guest.routes.js';
@@ -36,6 +37,7 @@ export function createApp() {
   app.use('/api/v1', photoRouter);
   app.use('/api/v1', portalRouter);
   app.use('/api/v1', askRouter);
+  app.use('/api/v1', dayPlanRouter);
 
   app.use(notFound);
   app.use(errorHandler);

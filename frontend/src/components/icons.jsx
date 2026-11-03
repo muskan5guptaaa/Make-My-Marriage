@@ -10,6 +10,9 @@ export const AskIcon = () => (
 export const FunctionsIcon = () => (
   <svg {...base}><rect x="2" y="3" width="14" height="12" rx="1.5" /><line x1="2" y1="7" x2="16" y2="7" /><line x1="6" y1="2" x2="6" y2="4" /><line x1="12" y1="2" x2="12" y2="4" /></svg>
 );
+export const DayPlanIcon = () => (
+  <svg {...base}><circle cx="9" cy="9" r="6.5" /><polyline points="9,5 9,9 11.5,10.5" /></svg>
+);
 export const TasksIcon = () => (
   <svg {...base}><line x1="5" y1="4" x2="15" y2="4" /><line x1="5" y1="9" x2="15" y2="9" /><line x1="5" y1="14" x2="15" y2="14" /><circle cx="2.2" cy="4" r="0.8" fill="currentColor" stroke="none" /><circle cx="2.2" cy="9" r="0.8" fill="currentColor" stroke="none" /><circle cx="2.2" cy="14" r="0.8" fill="currentColor" stroke="none" /></svg>
 );

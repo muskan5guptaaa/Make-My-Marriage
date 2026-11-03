@@ -19,6 +19,7 @@ A wedding-planning web app for Indian weddings. Couples and their family plan ev
 | Ask your wedding (AI) | Ask a question in plain words, get a short answer with links to the records it came from |
 | Planning agent (AI) | Ask for changes ("move the Haldi to Sunday 10 am and tell everyone"): the assistant suggests a plan of numbered steps, you check and edit it, then every step is saved together. Guests are emailed (or sent on WhatsApp) last. One tap undoes it |
 | Task plan (AI) | Draft tasks for upcoming functions with due dates counted back from each one; edit, then save |
+| Day plan (AI) | An hour-by-hour run sheet for each day. Code flags clashes (functions that overlap, a tight move between venues, one person in two places, open tasks, vendors not paid); the AI drafts the steps around each function; edit, save and print |
 | Smart guest import (AI) | Paste a WhatsApp list or upload a photo of a handwritten one; check the rows, then import. Phone numbers in pasted text are hidden from the AI |
 | Invitation words (AI) | Pick a tone and get the email and WhatsApp invitation text; edit and save, and every invitation uses it |
 | Budget insights | Over-budget categories, likely duplicate payments and payments due, worked out in code; AI suggestions on where to save, on request |
@@ -173,4 +174,4 @@ The repo deploys to Vercel as one project with two services (see [`vercel.json`]
 ## Roadmap
 
 - **V2 (built):** search by meaning with embeddings and Atlas Vector Search, guest-list import from a photo or pasted text, task plan generator, invitation writer, budget insights. Done when the 50-question eval passes the gate.
-- **V3 (in progress):** planning agent with approval and undo (built), day-of planner, RSVP chat for guests, eval dashboard, photo search by what's in the picture, Hindi and English voice
+- **V3 (in progress):** planning agent with approval and undo (built), day-of planner (built), RSVP chat for guests, eval dashboard, photo search by what's in the picture, Hindi and English voice

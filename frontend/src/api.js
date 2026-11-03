@@ -76,6 +76,11 @@ export const api = {
   askWedding,
   // An approved plan from Ask ({ question, steps }): saved all or none → { run, whatsapp }.
   applyPlan: (weddingId, body) => request(`/weddings/${weddingId}/ask/apply`, { method: 'POST', body }),
+  // Day plan: run sheets per day. Drafting uses the AI and saves nothing; PUT saves { items }.
+  listDayPlans: (weddingId) => request(`/weddings/${weddingId}/day-plans`),
+  getDayPlan: (weddingId, date) => request(`/weddings/${weddingId}/day-plans/${date}`),
+  draftDayPlan: (weddingId, date) => request(`/weddings/${weddingId}/day-plans/${date}/draft`, { method: 'POST' }),
+  saveDayPlan: (weddingId, date, items) => request(`/weddings/${weddingId}/day-plans/${date}`, { method: 'PUT', body: { items } }),
   listAgentRuns: (weddingId) => request(`/weddings/${weddingId}/ask/runs`),
   undoAgentRun: (weddingId, runId) => request(`/weddings/${weddingId}/ask/runs/${runId}/undo`, { method: 'POST' }),
   register: (body) => request('/auth/register', { method: 'POST', body }),

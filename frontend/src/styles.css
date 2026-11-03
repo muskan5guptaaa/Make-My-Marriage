@@ -636,3 +636,25 @@ textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3
 .ask-whatsapp p { margin: 0; }
 .recent-runs { margin-top: 16px; }
 .recent-runs .plan-row { align-items: center; }
+
+/* Day plan */
+.day-chips { margin-bottom: 18px; }
+.day-checks { margin-bottom: 18px; }
+.day-checks ul { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.run-sheet .mono { white-space: nowrap; }
+.run-sheet tr.fixed td { font-weight: 600; background: var(--accent-soft); }
+.run-sheet .pill { margin-left: 8px; }
+.run-edit .plan-row { align-items: center; }
+.run-row { display: grid; grid-template-columns: 110px minmax(160px, 2fr) minmax(120px, 1fr) 130px minmax(120px, 1.5fr) auto; gap: 8px; }
+.run-fixed { gap: 12px; }
+.run-edit .modal-actions { margin-top: 12px; }
+@media (max-width: 760px) {
+  .run-row { grid-template-columns: 100px 1fr auto; }
+  .run-row > :nth-child(n + 3):not(:last-child) { grid-column: 1 / -1; }
+}
+@media print {
+  .sidebar, .head-actions, .day-chips, .banner, .notice, .day-checks { display: none !important; }
+  .main { padding: 0; }
+  .card { box-shadow: none; border: 0; }
+}

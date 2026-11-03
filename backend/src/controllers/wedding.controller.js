@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { AgentRun } from '../models/AgentRun.js';
 import { AiChunk } from '../models/AiChunk.js';
+import { DayPlan } from '../models/DayPlan.js';
 import { Wedding } from '../models/Wedding.js';
 import { Expense, ExpenseCategory } from '../models/Expense.js';
 import { WeddingFunction } from '../models/Function.js';
@@ -141,6 +142,7 @@ export async function deleteWedding(req, res) {
       await Photo.deleteMany({ wedding: wedding._id }, { session });
       await AiChunk.deleteMany({ wedding: wedding._id }, { session });
       await AgentRun.deleteMany({ wedding: wedding._id }, { session });
+      await DayPlan.deleteMany({ wedding: wedding._id }, { session });
       await Album.deleteMany({ wedding: wedding._id }, { session });
       await Expense.deleteMany({ wedding: wedding._id }, { session });
       await ExpenseCategory.deleteMany({ wedding: wedding._id }, { session });

@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import {
-  AskIcon, DashboardIcon, ExpensesIcon, FunctionsIcon, GalleryIcon, GuestsIcon, SettingsIcon, TasksIcon,
+  AskIcon, DashboardIcon, DayPlanIcon, ExpensesIcon, FunctionsIcon, GalleryIcon, GuestsIcon, SettingsIcon, TasksIcon,
 } from '../components/icons.jsx';
 import { coupleName, initials } from '../lib/format.js';
 import { setLastWedding } from '../lib/lastWedding.js';
@@ -13,6 +13,7 @@ const NAV = [
   { to: '', label: 'Dashboard', Icon: DashboardIcon, end: true },
   { to: 'ask', label: 'Ask', Icon: AskIcon },
   { to: 'functions', label: 'Functions', Icon: FunctionsIcon },
+  { to: 'day-plan', label: 'Day plan', Icon: DayPlanIcon },
   { to: 'tasks', label: 'Tasks', Icon: TasksIcon },
   { to: 'guests', label: 'Guests', Icon: GuestsIcon },
   { to: 'expenses', label: 'Expenses', Icon: ExpensesIcon },
