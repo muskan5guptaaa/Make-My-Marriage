@@ -161,6 +161,9 @@ export const api = {
   portalSignPhoto: (token, albumId) => request(`/portal/${encodeURIComponent(token)}/albums/${albumId}/photos/sign`, { method: 'POST' }),
   portalCompletePhoto: (token, photoId) => request(`/portal/${encodeURIComponent(token)}/photos/${photoId}/complete`, { method: 'POST' }),
   getPortal: (token) => request(`/portal/${encodeURIComponent(token)}`),
+  // RSVP chat: the AI reads the guest's words (saves nothing); the confirmed answers are saved together.
+  portalChat: (token, messages) => request(`/portal/${encodeURIComponent(token)}/chat`, { method: 'POST', body: { messages } }),
+  answerPortalRsvps: (token, answers) => request(`/portal/${encodeURIComponent(token)}/rsvps`, { method: 'PUT', body: { answers } }),
   answerPortalRsvp: (token, functionId, body) =>
     request(`/portal/${encodeURIComponent(token)}/rsvps/${functionId}`, { method: 'PUT', body }),
   rsvpSummary: (weddingId) => request(`/weddings/${weddingId}/rsvps/summary`),

@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext.jsx';
 import { coupleName, formatDateRange, formatDay, formatTime } from '../../lib/format.js';
 import { MEALS } from '../guests/guestLabels.js';
 import PortalPhotos from './PortalPhotos.jsx';
+import RsvpChat from './RsvpChat.jsx';
 import './portal.css';
 
 // The page a guest opens from their private link (/i/<token>). No account: the link is the
@@ -51,6 +52,8 @@ export default function GuestPortal() {
             Dear {first}, we would love to celebrate with you. Please let us know for each function below.
           </p>
         </header>
+
+        {data.chat && functions.length > 0 && <RsvpChat token={token} onSaved={setData} />}
 
         <h2 className="gp-section mono">Your invitations</h2>
         {functions.length === 0 ? (

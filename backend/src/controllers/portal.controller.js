@@ -4,7 +4,9 @@ import { Guest } from '../models/Guest.js';
 import { GuestLink } from '../models/GuestLink.js';
 import { User } from '../models/User.js';
 import { Wedding } from '../models/Wedding.js';
+import { aiReady, generateJson, requireAi } from '../utils/ai.js';
 import { AppError, forbidden, notFoundError } from '../utils/AppError.js';
+import { buildChatPrompt, CHAT_SCHEMA, CHAT_SYSTEM_PROMPT, chatReply, toAnswers } from '../utils/rsvpChat.js';
 import { weddingDateRange } from './function.controller.js';
 import { applyRsvp } from './guest.controller.js';
 import * as photos from './photo.controller.js';
@@ -36,6 +38,7 @@ async function view(guest, wedding, user) {
       dateRange: await weddingDateRange(wedding._id),
     },
     guest: { name: guest.name, plusOnesAllowed: guest.plusOnesAllowed },
+    chat: aiReady(), // RSVP chat is offered only when the AI is set up
     photos: await photoStatus(guest, user),
     functions: invited.map((f) => {
       const r = answers.get(String(f._id));
@@ -75,6 +78,32 @@ export async function answerRsvp(req, res) {
   applyRsvp(guest, req.params.functionId, req.body);
   await guest.save();
   res.json(await view(guest, wedding, req.user));
+}
+
+// Several answers at once (from the RSVP chat). One guest record, so all are saved or none.
+export async function answerRsvps(req, res) {
+  const { guest, wedding } = await resolve(req.params.token);
+  for (const { function: functionId, ...body } of req.body.answers) applyRsvp(guest, functionId, body);
+  await guest.save();
+  res.json(await view(guest, wedding, req.user));
+}
+
+// POST /portal/:token/chat { messages } — the guest's reply in their own words, read by the AI.
+// Saves nothing: returns the AI's reply and the answers it understood, for the guest to save.
+export async function chat(req, res) {
+  requireAi();
+  const { guest, wedding } = await resolve(req.params.token);
+  const { functions } = await view(guest, wedding, null);
+  if (functions.length === 0) throw new AppError(409, 'no_functions', 'There are no functions on your invitation yet.');
+  const context = buildChatPrompt({ wedding, guest, functions, messages: req.body.messages });
+  const raw = await generateJson({ system: CHAT_SYSTEM_PROMPT, prompt: context.prompt, schema: CHAT_SCHEMA });
+  const reply = chatReply.safeParse(raw);
+  if (!reply.success) {
+    console.error('RSVP chat reply failed validation:', reply.error.issues.slice(0, 3));
+    throw new AppError(502, 'ai_bad_output', "Sorry, I didn't quite get that. Try again, or answer below.");
+  }
+  const others = await WeddingFunction.find({ wedding: wedding._id, archivedAt: null, _id: { $nin: functions.map((f) => f._id) } }).select('name').lean();
+  res.json(toAnswers(reply.data, { ...context, guest, messages: req.body.messages, otherFunctions: others.map((f) => f.name) }));
 }
 
 // ---- photos, through the guest's link ----

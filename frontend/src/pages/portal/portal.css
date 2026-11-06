@@ -65,3 +65,18 @@
 .gp-btn-link:hover { color: #fff; }
 .gp-signed { font-size: 11px; color: var(--muted); margin: -4px 0 0; }
 .gp-signed .gp-link { font-size: 11px; }
+
+/* RSVP chat */
+.gp-chat { gap: 10px; }
+.gp-messages { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.gp-messages li { max-width: 85%; padding: 10px 14px; border-radius: 16px; font-size: 14.5px; line-height: 1.5; }
+.gp-messages .from-guest { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+.gp-messages .from-assistant { align-self: flex-start; background: var(--surface-2); color: var(--ink); border-bottom-left-radius: 4px; }
+.gp-understood { border: 1px solid var(--border); border-radius: 14px; padding: 14px; background: var(--good-soft); }
+.gp-understood ul { margin: 0; padding-left: 18px; font-size: 14.5px; line-height: 1.6; }
+.gp-understood .gp-buttons { margin-top: 12px; }
+.gp-understood .gp-hint { margin-top: 8px; }
+.gp-chat-form { display: flex; gap: 10px; align-items: flex-end; }
+.gp-chat-form .gp-field { flex: 1; }
+.gp-chat-form button { border-radius: 12px; padding: 13px 18px; font: 600 14px var(--body); min-height: 48px; cursor: pointer; }
+.gp-chat-form button:disabled { opacity: 0.6; cursor: default; }

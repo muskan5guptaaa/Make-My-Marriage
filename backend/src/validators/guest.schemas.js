@@ -85,6 +85,32 @@ export const portalRsvpSchema = z.object({
   note: optionalText(500),
 });
 
+// RSVP chat: the recent conversation, sent by the page each time (the server keeps none).
+export const portalChatSchema = z.object({
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(['guest', 'assistant']),
+        text: z.string().trim().min(1, 'Type your reply.').max(500, 'Keep each message under 500 characters.'),
+      }),
+    )
+    .min(1, 'Type your reply.')
+    .max(12)
+    .refine((list) => list.at(-1)?.role === 'guest', 'The last message must be yours.'),
+});
+
+// Several answers at once (from the RSVP chat), saved together.
+export const portalRsvpsSchema = z.object({
+  answers: z
+    .array(
+      portalRsvpSchema.extend({
+        function: z.string().refine((v) => mongoose.isValidObjectId(v), 'You are not invited to that function.'),
+      }),
+    )
+    .min(1, 'Choose at least one answer.')
+    .max(30),
+});
+
 export const sendInvitationsSchema = z.object({
   audience: z.enum(['not-sent', 'pending'], { message: 'Choose who to email.' }),
   dryRun: z.boolean().optional(),

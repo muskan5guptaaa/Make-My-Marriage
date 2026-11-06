@@ -4,7 +4,7 @@ import { env } from '../config/env.js';
 import * as portal from '../controllers/portal.controller.js';
 import { optionalAuth } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
-import { portalRsvpSchema } from '../validators/guest.schemas.js';
+import { portalChatSchema, portalRsvpSchema, portalRsvpsSchema } from '../validators/guest.schemas.js';
 
 export const portalRouter = Router();
 
@@ -19,8 +19,22 @@ const limiter = rateLimit({
     res.status(429).json({ error: { code: 'rate_limited', message: 'Too many attempts. Wait 15 minutes and try again.' } }),
 });
 
+// RSVP chat uses the free AI allowance, so each invitation link gets a small share.
+const chatLimit = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 10,
+  keyGenerator: (req) => req.params.token,
+  skip: () => env.isTest,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (_req, res) =>
+    res.status(429).json({ error: { code: 'rate_limited', message: "That's a lot of messages. Wait a few minutes, or answer each function below." } }),
+});
+
 portalRouter.get('/portal/:token', limiter, optionalAuth, portal.getPortal);
 portalRouter.put('/portal/:token/rsvps/:functionId', limiter, optionalAuth, validateBody(portalRsvpSchema), portal.answerRsvp);
+portalRouter.put('/portal/:token/rsvps', limiter, optionalAuth, validateBody(portalRsvpsSchema), portal.answerRsvps);
+portalRouter.post('/portal/:token/chat', limiter, chatLimit, validateBody(portalChatSchema), portal.chat);
 portalRouter.get('/portal/:token/albums', limiter, optionalAuth, portal.getAlbums);
 portalRouter.get('/portal/:token/albums/:albumId/photos', limiter, optionalAuth, portal.getAlbumPhotos);
 portalRouter.post('/portal/:token/albums/:albumId/photos/sign', limiter, optionalAuth, portal.signPhoto);
