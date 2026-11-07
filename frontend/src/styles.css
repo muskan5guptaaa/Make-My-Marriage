@@ -658,3 +658,12 @@ textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3
   .main { padding: 0; }
   .card { box-shadow: none; border: 0; }
 }
+
+/* Photo search */
+.photo-search { margin-bottom: 18px; gap: 10px; display: flex; flex-direction: column; }
+.photo-search-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.photo-search-form input { flex: 1 1 260px; min-width: 0; }
+.photo-search-status { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.photo-search p { margin: 0; }
+.photo-album { position: absolute; left: 6px; bottom: 6px; font-size: 10.5px; background: rgba(20, 12, 28, 0.72); color: #fff; padding: 2px 7px; border-radius: 999px; }
+.lb-caption { margin: 0; padding: 8px 18px 0; color: #efe6f3; font-size: 14px; text-align: center; }

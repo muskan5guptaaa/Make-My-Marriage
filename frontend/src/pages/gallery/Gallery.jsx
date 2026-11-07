@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { Lightbox, PhotoGrid, UploadButton } from '../../components/photos/PhotoParts.jsx';
 import { useWedding } from '../../layout/WeddingContext.js';
+import PhotoSearch from './PhotoSearch.jsx';
 
 // The Gallery screen from the design: album chips, then the photos of the chosen album.
 export default function Gallery() {
@@ -13,6 +14,7 @@ export default function Gallery() {
   const [open, setOpen] = useState(null); // index in photos
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
+  const [found, setFound] = useState(null); // search results: { query, photos, albums }
 
   const loadAlbums = useCallback(async () => {
     try {
@@ -41,6 +43,7 @@ export default function Gallery() {
   }, [loadPhotos]);
 
   const album = albums?.find((a) => a._id === current);
+  const shown = found ? found.photos : photos; // what the viewer pages through
   const refresh = () => Promise.all([loadAlbums(), loadPhotos()]);
 
   async function act(work) {
@@ -74,7 +77,11 @@ export default function Gallery() {
       {creating && <NewAlbum onClose={() => setCreating(false)} onCreated={(a) => { setCreating(false); loadAlbums(); setCurrent(a._id); }} />}
       {error && <div className="alert" role="alert">{error}</div>}
 
-      {albums === null ? (
+      <PhotoSearch weddingId={wedding._id} canEdit={canEdit} active={Boolean(found)} onResults={(r) => { setOpen(null); setFound(r); }} />
+
+      {found ? (
+        <SearchResults found={found} onOpen={setOpen} />
+      ) : albums === null ? (
         <p className="muted" role="status">Loading albums…</p>
       ) : (
         <>
@@ -149,20 +156,28 @@ export default function Gallery() {
         </>
       )}
 
-      {open !== null && photos && (
+      {open !== null && shown && (
         <Lightbox
-          photos={photos}
+          photos={shown}
           index={open}
           onIndex={setOpen}
           onClose={() => setOpen(null)}
-          actions={(p) => canEdit && <PhotoActions photo={p} album={album} onAct={act} onDeleted={() => setOpen(null)} />}
+          actions={(p) => canEdit && (
+            <PhotoActions
+              photo={p}
+              album={found ? albums?.find((a) => a._id === p.album) : album}
+              onAct={act}
+              onChanged={(change) => found && setFound((f) => ({ ...f, photos: change ? f.photos.map((x) => (x._id === p._id ? { ...x, ...change } : x)) : f.photos.filter((x) => x._id !== p._id) }))}
+              onDeleted={() => setOpen(null)}
+            />
+          )}
         />
       )}
     </>
   );
 }
 
-function PhotoActions({ photo, album, onAct, onDeleted }) {
+function PhotoActions({ photo, album, onAct, onChanged, onDeleted }) {
   const { wedding } = useWedding();
   const [confirm, setConfirm] = useState(false);
   useEffect(() => setConfirm(false), [photo._id]);
@@ -171,14 +186,14 @@ function PhotoActions({ photo, album, onAct, onDeleted }) {
   return confirm ? (
     <span className="confirm lb-confirm">
       <span>Delete this photo for everyone?</span>
-      <button type="button" className="btn btn-danger inline sm" onClick={() => onAct(async () => { await api.deletePhoto(wedding._id, photo._id); onDeleted(); })}>
+      <button type="button" className="btn btn-danger inline sm" onClick={() => onAct(async () => { await api.deletePhoto(wedding._id, photo._id); onChanged?.(null); onDeleted(); })}>
         Yes, delete
       </button>
       <button type="button" className="btn btn-outline inline sm lb-btn" onClick={() => setConfirm(false)}>Keep</button>
     </span>
   ) : (
     <>
-      <button type="button" className="btn btn-outline inline sm lb-btn" onClick={() => onAct(() => api.updatePhoto(wedding._id, photo._id, { hidden: !photo.hidden }))}>
+      <button type="button" className="btn btn-outline inline sm lb-btn" onClick={() => onAct(async () => { await api.updatePhoto(wedding._id, photo._id, { hidden: !photo.hidden }); onChanged?.({ hidden: !photo.hidden }); })}>
         {photo.hidden ? 'Show to guests' : 'Hide from guests'}
       </button>
       {!photo.hidden && (
@@ -187,6 +202,29 @@ function PhotoActions({ photo, album, onAct, onDeleted }) {
         </button>
       )}
       <button type="button" className="btn btn-danger-outline inline sm" onClick={() => setConfirm(true)}>Delete</button>
+    </>
+  );
+}
+
+// Photos found by a search, closest match first.
+function SearchResults({ found, onOpen }) {
+  const where = found.albums.length ? ` in ${found.albums.join(', ')}` : '';
+  if (found.photos.length === 0) {
+    return (
+      <section className="card hero-card">
+        <div className="empty">
+          <h2>No photos match “{found.query}”{where}</h2>
+          <p>Try other words, like what people wear or what is happening. Only photos the AI has described can be found.</p>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <>
+      <p className="muted small" role="status">
+        {found.photos.length} photo{found.photos.length === 1 ? '' : 's'} for “{found.query}”{where}, closest match first. Click one to see what the AI saw.
+      </p>
+      <PhotoGrid photos={found.photos} onOpen={onOpen} />
     </>
   );
 }

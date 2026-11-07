@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FUNCTION_NAMES, GENERIC, nameList, namesOf, said } from './functionNames.js';
 
 // RSVP chat for guests: the guest replies in their own words ("we're 3, one is Jain, can't
 // make the Haldi") and the AI turns that into an answer per function.
@@ -64,26 +65,6 @@ export const chatReply = z.object({
     )
     .max(30),
 });
-
-// Names guests use for common functions, so code can tell which one they mean. "Wedding" and
-// "shaadi" are left out: "your wedding" usually means the whole event, not one function.
-const FUNCTION_NAMES = [
-  ['Haldi', 'haldi', 'pithi', 'हल्दी'],
-  ['Mehendi', 'mehendi', 'mehndi', 'mehandi', 'henna', 'मेहंदी'],
-  ['Sangeet', 'sangeet', 'sangit', 'संगीत'],
-  ['Reception', 'reception', 'रिसेप्शन'],
-  ['Cocktail', 'cocktail'],
-  ['Engagement', 'engagement', 'roka', 'sagai', 'सगाई'],
-  ['Tilak', 'tilak', 'तिलक'],
-];
-const GENERIC = /^(wedding|shaadi|shadi|vivah)$/i;
-const escaped = (word) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const said = (text, word) => new RegExp(`(^|[^\\p{L}\\p{M}])${escaped(word)}($|[^\\p{L}\\p{M}])`, 'iu').test(text);
-const namesOf = (name) => {
-  const family = FUNCTION_NAMES.find(([, ...aliases]) => aliases.some((a) => said(name, a)));
-  return [name, ...(family ? family.slice(1) : [])];
-};
-const nameList = (names) => (names.length < 2 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`);
 
 const day = (ymd) => new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 

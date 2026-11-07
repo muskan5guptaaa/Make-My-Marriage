@@ -47,6 +47,19 @@ export function photoUrls(publicId, version) {
   };
 }
 
+// A JPEG copy at most 768px on its longest side, for the AI to look at (small, so it's quick
+// and cheap; HEIC is converted too). Returns { mimeType, data } with data in base64.
+export async function imageForAi(publicId, version) {
+  if (env.isTest) {
+    if (!fake.has(publicId)) throw new Error('Cloudinary has no such image');
+    return { mimeType: 'image/jpeg', data: Buffer.from(`image:${publicId}`).toString('base64') };
+  }
+  const url = `https://res.cloudinary.com/${cloudName}/image/upload/c_limit,w_768,h_768,q_auto,f_jpg${version ? `/v${version}` : ''}/${publicId}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Cloudinary image fetch failed (${res.status})`);
+  return { mimeType: 'image/jpeg', data: Buffer.from(await res.arrayBuffer()).toString('base64') };
+}
+
 // ---- server-side calls (Admin API) ----
 
 // The uploaded file's details, or null if nothing was uploaded under that id.

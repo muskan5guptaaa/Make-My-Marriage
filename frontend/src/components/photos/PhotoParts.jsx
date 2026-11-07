@@ -8,8 +8,9 @@ export function PhotoGrid({ photos, onOpen }) {
     <ul className="photo-grid">
       {photos.map((p, i) => (
         <li key={p._id} className={p.hidden ? 'is-hidden' : undefined}>
-          <button type="button" className="photo-tile" onClick={() => onOpen(i)} aria-label={`Open photo ${i + 1}${p.hidden ? ' (hidden from guests)' : ''}`}>
+          <button type="button" className="photo-tile" onClick={() => onOpen(i)} aria-label={`Open photo ${i + 1}${p.caption ? `: ${p.caption}` : ''}${p.hidden ? ' (hidden from guests)' : ''}`}>
             <img src={p.thumbUrl} alt="" loading="lazy" />
+            {p.albumName && <span className="photo-album mono">{p.albumName}</span>}
             {p.hidden && <span className="photo-badge mono">Hidden</span>}
           </button>
         </li>
@@ -114,6 +115,7 @@ export function Lightbox({ photos, index, onIndex, onClose, actions }) {
         <img key={photo._id} src={photo.fullUrl} alt={`Photo ${index + 1}`} />
         {photos.length > 1 && <button type="button" className="lb-nav next" onClick={() => go(1)} aria-label="Next photo">&#8250;</button>}
       </div>
+      {photo.caption && <p className="lb-caption">{photo.caption}</p>}
       <div className="lb-actions">
         <a className="btn btn-outline inline sm lb-btn" href={photo.downloadUrl} target="_blank" rel="noreferrer">Download</a>
         {actions?.(photo)}

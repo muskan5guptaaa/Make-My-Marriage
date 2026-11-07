@@ -23,6 +23,7 @@ A wedding-planning web app for Indian weddings. Couples and their family plan ev
 | Day plan (AI) | An hour-by-hour run sheet for each day. Code flags clashes (functions that overlap, a tight move between venues, one person in two places, open tasks, vendors not paid); the AI drafts the steps around each function; edit, save and print |
 | Smart guest import (AI) | Paste a WhatsApp list or upload a photo of a handwritten one; check the rows, then import. Phone numbers in pasted text are hidden from the AI |
 | Invitation words (AI) | Pick a tone and get the email and WhatsApp invitation text; edit and save, and every invitation uses it |
+| Photo search (AI) | Search the gallery by what is in the photos ("bride with grandmother at the Mehendi"). The AI describes each photo once (people by role and clothing, never by name; no face data), and a function named in the search picks its album |
 | Budget insights | Over-budget categories, likely duplicate payments and payments due, worked out in code; AI suggestions on where to save, on request |
 
 ## Tech stack
@@ -92,6 +93,22 @@ Most weddings are small enough to send whole, which is the most accurate way to 
   "fields": [
     { "type": "vector", "path": "embedding", "numDimensions": 768, "similarity": "cosine" },
     { "type": "filter", "path": "wedding" }
+  ]
+}
+```
+
+### Photo search
+
+"Make photos searchable" on the Gallery sends each photo, one at a time, to Gemini as a small JPEG; the description it writes (caption, people by role, setting, tags) is turned into a vector and saved in `photodescriptions`. A search becomes a vector too and the closest photos come back. One request per photo, so a big gallery takes a few days on the free plan; described photos stay searchable.
+
+Optional, for big galleries: create a second Atlas Vector Search index on the `photodescriptions` collection, named `photos_vector`. Without it the ranking is done in code, which is fine for a few thousand photos.
+
+```json
+{
+  "fields": [
+    { "type": "vector", "path": "embedding", "numDimensions": 768, "similarity": "cosine" },
+    { "type": "filter", "path": "wedding" },
+    { "type": "filter", "path": "album" }
   ]
 }
 ```
@@ -175,4 +192,4 @@ The repo deploys to Vercel as one project with two services (see [`vercel.json`]
 ## Roadmap
 
 - **V2 (built):** search by meaning with embeddings and Atlas Vector Search, guest-list import from a photo or pasted text, task plan generator, invitation writer, budget insights. Done when the 50-question eval passes the gate.
-- **V3 (in progress):** planning agent with approval and undo (built), day-of planner (built), RSVP chat for guests (built), eval dashboard, photo search by what's in the picture, Hindi and English voice
+- **V3 (in progress):** planning agent with approval and undo (built), day-of planner (built), RSVP chat for guests (built), photo search (built), eval dashboard, photo moments, Hindi and English voice

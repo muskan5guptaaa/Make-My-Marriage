@@ -151,6 +151,10 @@ export const api = {
   createAlbum: (weddingId, name) => request(`/weddings/${weddingId}/albums`, { method: 'POST', body: { name } }),
   updateAlbum: (weddingId, albumId, body) => request(`/weddings/${weddingId}/albums/${albumId}`, { method: 'PATCH', body }),
   deleteAlbum: (weddingId, albumId) => request(`/weddings/${weddingId}/albums/${albumId}`, { method: 'DELETE' }),
+  // Photo search (AI): how many are searchable, describe one more, and search by meaning.
+  photoSearchStatus: (weddingId) => request(`/weddings/${weddingId}/photos/search-status`),
+  describeNextPhoto: (weddingId) => request(`/weddings/${weddingId}/photos/describe-next`, { method: 'POST' }),
+  searchPhotos: (weddingId, q) => request(`/weddings/${weddingId}/photos/search?q=${encodeURIComponent(q)}`),
   listPhotos: (weddingId, albumId) => request(`/weddings/${weddingId}/albums/${albumId}/photos`),
   signPhoto: (weddingId, albumId) => request(`/weddings/${weddingId}/albums/${albumId}/photos/sign`, { method: 'POST' }),
   completePhoto: (weddingId, photoId) => request(`/weddings/${weddingId}/photos/${photoId}/complete`, { method: 'POST' }),

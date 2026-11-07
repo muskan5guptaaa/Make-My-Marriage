@@ -1,5 +1,9 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import { env } from '../config/env.js';
 import * as photos from '../controllers/photo.controller.js';
+import * as photoSearch from '../controllers/photoSearch.controller.js';
+import { aiLimit } from '../middleware/aiLimit.js';
 import { requireAuth } from '../middleware/auth.js';
 import { loadWedding, requireActive } from '../middleware/membership.js';
 import { validateBody } from '../middleware/validate.js';
@@ -11,6 +15,23 @@ export const photoRouter = Router();
 const member = [requireAuth, loadWedding];
 const write = [...member, requireActive];
 const W = '/weddings/:weddingId';
+
+// Describing photos is one AI request each, sent one after another by the page; the free plan
+// allows about 15 a minute, so each person is kept a little under that.
+const describeLimit = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 12,
+  keyGenerator: (req) => String(req.user._id),
+  skip: () => env.isTest,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler: (_req, res) => res.status(429).json({ error: { code: 'ai_busy', message: 'Describing photos quickly. Waiting a moment before the next one.' } }),
+});
+
+// Photo search (AI): any member can search; describing photos needs an active wedding.
+photoRouter.get(`${W}/photos/search-status`, ...member, photoSearch.status);
+photoRouter.get(`${W}/photos/search`, ...member, aiLimit, photoSearch.search);
+photoRouter.post(`${W}/photos/describe-next`, ...write, describeLimit, photoSearch.describe);
 
 photoRouter.get(`${W}/albums`, ...member, photos.listAlbums);
 photoRouter.post(`${W}/albums`, ...write, validateBody(createAlbumSchema), photos.createAlbum);

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { WeddingFunction } from '../models/Function.js';
 import { Album, Photo } from '../models/Photo.js';
+import { PhotoDescription } from '../models/PhotoDescription.js';
 import { AppError, badRequest, notFoundError } from '../utils/AppError.js';
 import {
   ALLOWED_FORMATS, MAX_PHOTO_BYTES, deleteUploads, deleteUploadsByPrefix, findUpload, photoUrls, requirePhotos, uploadTicket,
@@ -12,7 +13,7 @@ export const GUEST_UPLOAD_LIMIT = 200; // per guest, so one link can't fill the 
 
 const prefixFor = (weddingId) => `mmm/weddings/${weddingId}/`;
 
-function toPhoto(p, { forPlanner }) {
+export function toPhoto(p, { forPlanner }) {
   return {
     _id: p._id,
     album: p.album,
@@ -159,6 +160,7 @@ export async function deleteAlbum(req, res) {
   const photos = await Photo.find({ album: album._id }).select('publicId');
   await deleteUploads(photos.map((p) => p.publicId));
   await Photo.deleteMany({ album: album._id });
+  await PhotoDescription.deleteMany({ album: album._id });
   await Album.deleteOne({ _id: album._id });
   res.status(204).end();
 }
@@ -190,6 +192,7 @@ export async function deletePhoto(req, res) {
   const photo = await loadPhoto(req.wedding._id, req.params.photoId);
   await deleteUploads([photo.publicId]);
   await Photo.deleteOne({ _id: photo._id });
+  await PhotoDescription.deleteOne({ photo: photo._id });
   await Album.updateOne({ _id: photo.album, coverPhoto: photo._id }, { $unset: { coverPhoto: 1 } });
   res.status(204).end();
 }
