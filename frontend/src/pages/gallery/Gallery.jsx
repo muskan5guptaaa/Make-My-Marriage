@@ -77,7 +77,13 @@ export default function Gallery() {
       {creating && <NewAlbum onClose={() => setCreating(false)} onCreated={(a) => { setCreating(false); loadAlbums(); setCurrent(a._id); }} />}
       {error && <div className="alert" role="alert">{error}</div>}
 
-      <PhotoSearch weddingId={wedding._id} canEdit={canEdit} active={Boolean(found)} onResults={(r) => { setOpen(null); setFound(r); }} />
+      <PhotoSearch
+        weddingId={wedding._id}
+        canEdit={canEdit}
+        active={Boolean(found)}
+        photoCount={albums?.reduce((n, a) => n + a.photoCount, 0)}
+        onResults={(r) => { setOpen(null); setFound(r); }}
+      />
 
       {found ? (
         <SearchResults found={found} onOpen={setOpen} />

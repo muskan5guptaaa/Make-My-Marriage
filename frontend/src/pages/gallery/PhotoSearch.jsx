@@ -7,7 +7,9 @@ export const BUSY_WAIT_MS = 30_000;
 // Search photos by what's in them, and the button that makes them searchable: the AI describes
 // photos one at a time (one request each) until none are waiting, today's free allowance runs
 // out, or the person presses Stop. Photos already described stay searchable.
-export default function PhotoSearch({ weddingId, canEdit, onResults, active }) {
+// `photoCount` is the gallery's current number of photos: when uploads or deletes change it,
+// the searchable count is fetched again.
+export default function PhotoSearch({ weddingId, canEdit, onResults, active, photoCount }) {
   const [status, setStatus] = useState(null); // { total, searchable, failed, waiting }
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
@@ -17,11 +19,15 @@ export default function PhotoSearch({ weddingId, canEdit, onResults, active }) {
   const stop = useRef(false);
 
   useEffect(() => {
+    if (photoCount === undefined) return; // albums still loading
     api.photoSearchStatus(weddingId).then(setStatus).catch(() => {});
-    return () => {
-      stop.current = true;
-    };
-  }, [weddingId]);
+  }, [weddingId, photoCount]);
+  useEffect(
+    () => () => {
+      stop.current = true; // leaving the page stops describing
+    },
+    [],
+  );
 
   const wait = (ms) =>
     new Promise((resolve) => {

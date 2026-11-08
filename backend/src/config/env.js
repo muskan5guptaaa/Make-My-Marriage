@@ -38,6 +38,10 @@ export const env = {
     // Whenever search isn't ready or fails, the whole wedding is sent instead.
     rag: ['auto', 'always', 'off'].includes(process.env.AI_RAG) ? process.env.AI_RAG : 'auto',
     ragMinChars: Number(process.env.AI_RAG_MIN_CHARS ?? 30_000),
+    // Photo search keeps a photo only if its cosine similarity to the search reaches this.
+    // Measured on real photos with gemini-embedding-001: unrelated searches ("cake") scored
+    // 0.53–0.55, real matches 0.59–0.74.
+    photoMinScore: Number(process.env.PHOTO_SEARCH_MIN_SCORE ?? 0.57),
   },
   smtp: {
     host: process.env.SMTP_HOST ?? '',

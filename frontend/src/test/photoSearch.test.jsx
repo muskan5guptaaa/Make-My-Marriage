@@ -87,6 +87,29 @@ describe('Photo search', () => {
     expect(within(box).queryByRole('button', { name: /searchable$/ })).not.toBeInTheDocument();
   });
 
+  it('counts again when photos are added or removed', async () => {
+    api.listAlbums
+      .mockResolvedValueOnce({ data: albums })
+      .mockResolvedValue({ data: [albums[0], { ...albums[1], photoCount: 0 }] });
+    api.listPhotos.mockResolvedValue({ data: [photo('p3', 'a2', null, null)] });
+    api.photoSearchStatus
+      .mockResolvedValueOnce({ total: 3, searchable: 1, failed: 0, waiting: 2 })
+      .mockResolvedValue({ total: 2, searchable: 1, failed: 0, waiting: 1 });
+    api.deletePhoto.mockResolvedValue(null);
+    renderGallery();
+    const u = userEvent.setup();
+    const box = await screen.findByRole('region', { name: 'Search photos' });
+    expect(within(box).getByRole('button', { name: 'Make 2 photos searchable' })).toBeInTheDocument();
+
+    await u.click(screen.getByRole('tab', { name: /Reception/ }));
+    await u.click(await screen.findByRole('button', { name: 'Open photo 1' }));
+    await u.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
+    await u.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes, delete' }));
+
+    expect(await within(box).findByRole('button', { name: 'Make 1 photo searchable' })).toBeInTheDocument();
+    expect(box).toHaveTextContent('1 of 2 photos are searchable');
+  });
+
   it('cannot describe photos on an archived wedding, but can still search', async () => {
     api.photoSearchStatus.mockResolvedValue({ total: 3, searchable: 1, failed: 0, waiting: 2 });
     renderGallery('archived');

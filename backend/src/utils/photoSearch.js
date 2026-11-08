@@ -23,7 +23,9 @@ import { namesOf, said } from './functionNames.js';
 
 export const PHOTO_INDEX = 'photos_vector';
 export const MAX_RESULTS = 24;
-const CLOSE_ENOUGH = 0.1; // keep matches within this much of the best one
+// Keep matches within this much of the best one. On real photos the best match was usually
+// 0.07–0.10 ahead of unrelated ones, while two photos that both fit were within 0.01–0.03.
+const CLOSE_ENOUGH = 0.04;
 
 export const PHOTO_SYSTEM_PROMPT = `You describe one photo from an Indian wedding so the couple can find it later by searching.
 
@@ -149,8 +151,9 @@ async function rank(weddingId, vector, albumIds) {
 }
 
 /**
- * @returns { photos: [{ photo, score, caption }], albums: [names matched], searchable }
- *   photos: closest first, only those close to the best match, at most MAX_RESULTS.
+ * @returns { photos: [{ photo, score, caption }], albums: [names matched] }
+ *   photos: closest first, only those close to the best match and above the minimum score
+ *   (so a search for something in no photo finds nothing), at most MAX_RESULTS.
  */
 export async function searchPhotos(weddingId, query) {
   const named = await albumsNamed(weddingId, query);
@@ -161,7 +164,8 @@ export async function searchPhotos(weddingId, query) {
   const [vector] = await embedTexts([about], { task: 'query' });
   const ranked = await rank(weddingId, vector, named.length ? named.map((a) => a._id) : null);
   const best = ranked[0]?.score ?? 0;
-  const close = ranked.filter((r) => r.score >= best - CLOSE_ENOUGH).slice(0, MAX_RESULTS);
+  const floor = Math.max(env.ai.photoMinScore, best - CLOSE_ENOUGH);
+  const close = ranked.filter((r) => r.score >= floor).slice(0, MAX_RESULTS);
   const captions = new Map(
     (await PhotoDescription.find({ photo: { $in: close.map((r) => r.photo) } }).select('photo caption').lean()).map((d) => [String(d.photo), d.caption]),
   );

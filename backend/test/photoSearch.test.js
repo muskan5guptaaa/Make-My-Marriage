@@ -11,6 +11,7 @@ const { createApp } = await import('../src/app.js');
 const { fake: cloud } = await import('../src/utils/cloudinary.js');
 const { fake: ai } = await import('../src/utils/ai.js');
 const { AppError } = await import('../src/utils/AppError.js');
+const { env } = await import('../src/config/env.js');
 const { PhotoDescription } = await import('../src/models/PhotoDescription.js');
 
 let mongo;
@@ -52,6 +53,7 @@ beforeEach(async () => {
   await mongoose.connection.syncIndexes();
   cloud.clear();
   Object.assign(ai, { json: null, embedError: null });
+  env.ai.photoMinScore = 0; // the fake embeddings don't score on Gemini's scale
   ai.calls.length = 0;
   ai.embedCalls.length = 0;
   cookie = cookieOf(await request(app).post('/api/v1/auth/register').send({ name: 'Aisha Sharma', email: 'aisha@email.com', password: 'mehendi2026' }));
@@ -61,14 +63,14 @@ beforeEach(async () => {
   reception = (await post(`${W}/functions`, { name: 'Reception', localDate: '2026-10-27' })).body.function;
 });
 
-// Three photos, described: a hug and a dance at the Sangeet, a dance at the Reception.
+// Three photos, described: a hug and a dance at the Sangeet, a very similar dance at the Reception.
 async function seed() {
   const hug = await upload('Sangeet');
   const dance = await upload('Sangeet');
   const party = await upload('Reception');
   await describeNext(said('The bride in a red lehenga hugs an elderly woman in a white saree.', 'bride, grandmother', 'stage, evening', ['hug', 'emotional', 'grandmother'])).expect(200);
   await describeNext(said('Friends dancing to a dhol player under fairy lights.', 'group of friends, dhol player', 'dance floor, night', ['dancing', 'dhol', 'lights'])).expect(200);
-  await describeNext(said('Guests dancing in a crowded banquet hall.', 'many guests', 'banquet hall, night', ['dancing', 'party', 'crowd'])).expect(200);
+  await describeNext(said('Friends dancing to a dhol player under bright lights.', 'group of friends, dhol player', 'dance floor, night', ['dancing', 'dhol', 'lights'])).expect(200);
   return { hug, dance, party };
 }
 
@@ -123,6 +125,13 @@ describe('photo search: searching', () => {
     assert.equal(res.body.data[0].albumName, 'Sangeet');
     assert.ok(res.body.data[0].thumbUrl);
     assert.deepEqual(ai.embedCalls.at(-1), { texts: ['bride hugging her grandmother'], task: 'query' });
+  });
+
+  it('finds nothing when no photo is close enough', async () => {
+    await seed();
+    env.ai.photoMinScore = 0.99;
+    const res = await get(`${W}/photos/search?q=${encodeURIComponent('bride hugging her grandmother')}`).expect(200);
+    assert.deepEqual(res.body.data, []);
   });
 
   it('keeps to the album of a function named in the search', async () => {
