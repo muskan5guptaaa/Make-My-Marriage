@@ -13,6 +13,7 @@ A wedding-planning web app for Indian weddings. Couples and their family plan ev
 | Guests | Add one by one or import from CSV. Bride or groom side, plus-ones, accommodation. Phone numbers stored in one format (+91). Bulk delete |
 | RSVPs | Separate answer per function, with people count, meal preference and a note |
 | Guest portal | Each guest gets a private link to see their functions and RSVP. Invitations by email or WhatsApp |
+| Voice in the RSVP chat | Guests can speak instead of typing, in English, Hindi or Tamil (the browser turns speech into text, free, in Chrome and Edge); the words appear in the box to check before sending. Replies can be read aloud, and the chat answers in the guest's language |
 | RSVP chat (AI) | On their link, a guest can reply in their own words ("we're 3, one is Jain, can't make the Haldi"). The AI fills in each answer and asks back if unsure; the guest checks it and presses Save. It sees only that guest's own invitation |
 | Tasks | Due dates, assignees, linked to a function, overdue tracking |
 | Expenses | Budget against actual spend per category and function, paid by bride or groom side, payment status |
@@ -193,4 +194,4 @@ The repo deploys to Vercel as one project with two services (see [`vercel.json`]
 ## Roadmap
 
 - **V2 (built):** search by meaning with embeddings and Atlas Vector Search, guest-list import from a photo or pasted text, task plan generator, invitation writer, budget insights. Done when the 50-question eval passes the gate.
-- **V3 (in progress):** planning agent with approval and undo (built), day-of planner (built), RSVP chat for guests (built), photo search (built), photo moments (built), eval dashboard, Hindi and English voice
+- **V3 (in progress):** planning agent with approval and undo (built), day-of planner (built), RSVP chat for guests (built), photo search (built), photo moments (built), voice in English, Hindi and Tamil (built), eval dashboard

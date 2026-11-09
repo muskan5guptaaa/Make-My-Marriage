@@ -80,3 +80,14 @@
 .gp-chat-form .gp-field { flex: 1; }
 .gp-chat-form button { border-radius: 12px; padding: 13px 18px; font: 600 14px var(--body); min-height: 48px; cursor: pointer; }
 .gp-chat-form button:disabled { opacity: 0.6; cursor: default; }
+
+/* Voice in the RSVP chat */
+.gp-chat-form { flex-wrap: wrap; }
+.gp-voice { display: flex; gap: 6px; align-items: center; }
+.gp-voice select { min-height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); padding: 0 10px; font: 600 14px var(--body); }
+.gp-mic { min-width: 48px; min-height: 48px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); font-size: 20px; cursor: pointer; }
+.gp-mic.on { background: var(--accent); border-color: var(--accent); animation: gp-pulse 1.2s ease-in-out infinite; }
+.gp-mic:disabled { opacity: 0.5; cursor: default; }
+.gp-listen { margin-left: 8px; background: none; border: 0; cursor: pointer; font-size: 15px; padding: 2px 4px; vertical-align: middle; }
+@keyframes gp-pulse { 50% { box-shadow: 0 0 0 6px rgba(194, 24, 91, 0.18); } }
+@media (prefers-reduced-motion: reduce) { .gp-mic.on { animation: none; } }

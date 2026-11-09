@@ -3,13 +3,14 @@
 
 // Names people use for common functions. "Wedding" and "shaadi" are left out: "your wedding"
 // usually means the whole event, not one function.
+// Spellings in English letters, Hindi (Devanagari) and Tamil script.
 export const FUNCTION_NAMES = [
-  ['Haldi', 'haldi', 'pithi', 'हल्दी'],
-  ['Mehendi', 'mehendi', 'mehndi', 'mehandi', 'henna', 'मेहंदी'],
-  ['Sangeet', 'sangeet', 'sangit', 'संगीत'],
-  ['Reception', 'reception', 'रिसेप्शन'],
-  ['Cocktail', 'cocktail'],
-  ['Engagement', 'engagement', 'roka', 'sagai', 'सगाई'],
+  ['Haldi', 'haldi', 'pithi', 'हल्दी', 'ஹல்தி', 'மஞ்சள் நீராட்டு'],
+  ['Mehendi', 'mehendi', 'mehndi', 'mehandi', 'henna', 'मेहंदी', 'मेंहदी', 'மெஹந்தி', 'மருதாணி'],
+  ['Sangeet', 'sangeet', 'sangit', 'संगीत', 'சங்கீத்'],
+  ['Reception', 'reception', 'रिसेप्शन', 'ரிசப்ஷன்', 'வரவேற்பு'],
+  ['Cocktail', 'cocktail', 'कॉकटेल'],
+  ['Engagement', 'engagement', 'roka', 'sagai', 'सगाई', 'रोका', 'நிச்சயதார்த்தம்'],
   ['Tilak', 'tilak', 'तिलक'],
 ];
 export const GENERIC = /^(wedding|shaadi|shadi|vivah)$/i;
