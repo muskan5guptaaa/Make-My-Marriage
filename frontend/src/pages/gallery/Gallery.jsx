@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api.js';
 import { Lightbox, PhotoGrid, UploadButton } from '../../components/photos/PhotoParts.jsx';
 import { useWedding } from '../../layout/WeddingContext.js';
+import Moments from './Moments.jsx';
 import PhotoSearch from './PhotoSearch.jsx';
 
 // The Gallery screen from the design: album chips, then the photos of the chosen album.
@@ -15,6 +16,7 @@ export default function Gallery() {
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [found, setFound] = useState(null); // search results: { query, photos, albums }
+  const [grouping, setGrouping] = useState(false); // show the album as moments
 
   const loadAlbums = useCallback(async () => {
     try {
@@ -41,6 +43,7 @@ export default function Gallery() {
     setPhotos(null);
     loadPhotos();
   }, [loadPhotos]);
+  useEffect(() => setGrouping(false), [current]);
 
   const album = albums?.find((a) => a._id === current);
   const shown = found ? found.photos : photos; // what the viewer pages through
@@ -149,12 +152,23 @@ export default function Gallery() {
                 </section>
               ) : (
                 <>
-                  <p className="muted small">
-                    {photos.length} photo{photos.length === 1 ? '' : 's'}
-                    {photos.some((p) => p.hidden) && ` · ${photos.filter((p) => p.hidden).length} hidden from guests`}
-                    {' · '}Click a photo to view, download, hide or delete it.
-                  </p>
-                  <PhotoGrid photos={photos} onOpen={setOpen} />
+                  <div className="album-bar">
+                    <p className="muted small">
+                      {photos.length} photo{photos.length === 1 ? '' : 's'}
+                      {photos.some((p) => p.hidden) && ` · ${photos.filter((p) => p.hidden).length} hidden from guests`}
+                      {!grouping && ' · Click a photo to view, download, hide or delete it.'}
+                    </p>
+                    {photos.length > 1 && (
+                      <button type="button" className="btn btn-outline inline sm" aria-pressed={grouping} onClick={() => setGrouping((g) => !g)}>
+                        {grouping ? 'Show all photos' : 'Group similar shots'}
+                      </button>
+                    )}
+                  </div>
+                  {grouping ? (
+                    <Moments weddingId={wedding._id} album={album} canEdit={canEdit} onChanged={refresh} />
+                  ) : (
+                    <PhotoGrid photos={photos} onOpen={setOpen} />
+                  )}
                 </>
               )}
             </>

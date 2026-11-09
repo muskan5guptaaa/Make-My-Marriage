@@ -2,12 +2,13 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { env } from '../config/env.js';
 import * as photos from '../controllers/photo.controller.js';
+import * as moments from '../controllers/photoMoments.controller.js';
 import * as photoSearch from '../controllers/photoSearch.controller.js';
 import { aiLimit } from '../middleware/aiLimit.js';
 import { requireAuth } from '../middleware/auth.js';
 import { loadWedding, requireActive } from '../middleware/membership.js';
 import { validateBody } from '../middleware/validate.js';
-import { createAlbumSchema, updateAlbumSchema, updatePhotoSchema } from '../validators/photo.schemas.js';
+import { createAlbumSchema, momentBestSchema, momentKeySchema, updateAlbumSchema, updatePhotoSchema } from '../validators/photo.schemas.js';
 
 export const photoRouter = Router();
 
@@ -32,6 +33,13 @@ const describeLimit = rateLimit({
 photoRouter.get(`${W}/photos/search-status`, ...member, photoSearch.status);
 photoRouter.get(`${W}/photos/search`, ...member, aiLimit, photoSearch.search);
 photoRouter.post(`${W}/photos/describe-next`, ...write, describeLimit, photoSearch.describe);
+
+// Photo moments: look-alike shots grouped by code (free); the AI picks a best shot on request.
+const M = `${W}/albums/:albumId/moments`;
+photoRouter.get(M, ...member, moments.list);
+photoRouter.post(`${M}/pick`, ...write, aiLimit, validateBody(momentKeySchema), moments.pick);
+photoRouter.put(`${M}/best`, ...write, validateBody(momentBestSchema), moments.choose);
+photoRouter.post(`${M}/hide-rest`, ...write, validateBody(momentKeySchema), moments.hideRest);
 
 photoRouter.get(`${W}/albums`, ...member, photos.listAlbums);
 photoRouter.post(`${W}/albums`, ...write, validateBody(createAlbumSchema), photos.createAlbum);

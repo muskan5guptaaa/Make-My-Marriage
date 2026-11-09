@@ -28,6 +28,7 @@ const photoSchema = new mongoose.Schema(
     height: { type: Number },
     sizeBytes: { type: Number },
     version: { type: Number },
+    phash: { type: String }, // Cloudinary's perceptual hash, for finding look-alike shots
     status: { type: String, enum: ['pending', 'complete'], default: 'pending' },
     hidden: { type: Boolean, default: false }, // moderation: hidden from guests
     uploadedAt: { type: Date },

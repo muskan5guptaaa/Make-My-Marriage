@@ -24,6 +24,7 @@ A wedding-planning web app for Indian weddings. Couples and their family plan ev
 | Smart guest import (AI) | Paste a WhatsApp list or upload a photo of a handwritten one; check the rows, then import. Phone numbers in pasted text are hidden from the AI |
 | Invitation words (AI) | Pick a tone and get the email and WhatsApp invitation text; edit and save, and every invitation uses it |
 | Photo search (AI) | Search the gallery by what is in the photos ("bride with grandmother at the Mehendi"). The AI describes each photo once (people by role and clothing, never by name; no face data), and a function named in the search picks its album |
+| Photo moments (AI) | In an album, "Group similar shots" puts look-alike photos of the same moment together (by Cloudinary's perceptual hash, in code, no face data). The AI picks the best shot of a group on request, or you choose; then hide the rest from guests in one tap |
 | Budget insights | Over-budget categories, likely duplicate payments and payments due, worked out in code; AI suggestions on where to save, on request |
 
 ## Tech stack
@@ -192,4 +193,4 @@ The repo deploys to Vercel as one project with two services (see [`vercel.json`]
 ## Roadmap
 
 - **V2 (built):** search by meaning with embeddings and Atlas Vector Search, guest-list import from a photo or pasted text, task plan generator, invitation writer, budget insights. Done when the 50-question eval passes the gate.
-- **V3 (in progress):** planning agent with approval and undo (built), day-of planner (built), RSVP chat for guests (built), photo search (built), eval dashboard, photo moments, Hindi and English voice
+- **V3 (in progress):** planning agent with approval and undo (built), day-of planner (built), RSVP chat for guests (built), photo search (built), photo moments (built), eval dashboard, Hindi and English voice

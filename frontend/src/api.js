@@ -155,6 +155,11 @@ export const api = {
   photoSearchStatus: (weddingId) => request(`/weddings/${weddingId}/photos/search-status`),
   describeNextPhoto: (weddingId) => request(`/weddings/${weddingId}/photos/describe-next`, { method: 'POST' }),
   searchPhotos: (weddingId, q) => request(`/weddings/${weddingId}/photos/search?q=${encodeURIComponent(q)}`),
+  // Photo moments: look-alike shots grouped by code; the AI picks a best shot on request.
+  listMoments: (weddingId, albumId) => request(`/weddings/${weddingId}/albums/${albumId}/moments`),
+  pickMoment: (weddingId, albumId, key) => request(`/weddings/${weddingId}/albums/${albumId}/moments/pick`, { method: 'POST', body: { key } }),
+  chooseMoment: (weddingId, albumId, key, best) => request(`/weddings/${weddingId}/albums/${albumId}/moments/best`, { method: 'PUT', body: { key, best } }),
+  hideMomentRest: (weddingId, albumId, key) => request(`/weddings/${weddingId}/albums/${albumId}/moments/hide-rest`, { method: 'POST', body: { key } }),
   listPhotos: (weddingId, albumId) => request(`/weddings/${weddingId}/albums/${albumId}/photos`),
   signPhoto: (weddingId, albumId) => request(`/weddings/${weddingId}/albums/${albumId}/photos/sign`, { method: 'POST' }),
   completePhoto: (weddingId, photoId) => request(`/weddings/${weddingId}/photos/${photoId}/complete`, { method: 'POST' }),

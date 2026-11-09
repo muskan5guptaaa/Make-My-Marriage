@@ -62,14 +62,15 @@ export async function imageForAi(publicId, version) {
 
 // ---- server-side calls (Admin API) ----
 
-// The uploaded file's details, or null if nothing was uploaded under that id.
+// The uploaded file's details, or null if nothing was uploaded under that id. phash is
+// Cloudinary's perceptual hash: 16 hex digits that barely change between photos that look alike.
 export async function findUpload(publicId) {
   if (env.isTest) return fake.get(publicId) ?? null;
-  const res = await fetch(`${API()}/resources/image/upload/${publicId}`, { headers: { Authorization: basicAuth() } });
+  const res = await fetch(`${API()}/resources/image/upload/${publicId}?phash=true`, { headers: { Authorization: basicAuth() } });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Cloudinary lookup failed (${res.status})`);
   const r = await res.json();
-  return { bytes: r.bytes, format: r.format, width: r.width, height: r.height, version: r.version };
+  return { bytes: r.bytes, format: r.format, width: r.width, height: r.height, version: r.version, phash: r.phash ?? null };
 }
 
 export async function deleteUploads(publicIds) {

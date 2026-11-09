@@ -42,6 +42,9 @@ export const env = {
     // Measured on real photos with gemini-embedding-001: unrelated searches ("cake") scored
     // 0.53–0.55, real matches 0.59–0.74.
     photoMinScore: Number(process.env.PHOTO_SEARCH_MIN_SCORE ?? 0.57),
+    // Photo moments: two photos are the same moment when their perceptual hashes differ in at
+    // most this many of 64 bits. Burst shots are usually under 10; different scenes over 20.
+    photoSameMoment: Number(process.env.PHOTO_SAME_MOMENT_BITS ?? 10),
   },
   smtp: {
     host: process.env.SMTP_HOST ?? '',

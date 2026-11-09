@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { WeddingFunction } from '../models/Function.js';
 import { Album, Photo } from '../models/Photo.js';
 import { PhotoDescription } from '../models/PhotoDescription.js';
+import { PhotoMoment } from '../models/PhotoMoment.js';
 import { AppError, badRequest, notFoundError } from '../utils/AppError.js';
 import {
   ALLOWED_FORMATS, MAX_PHOTO_BYTES, deleteUploads, deleteUploadsByPrefix, findUpload, photoUrls, requirePhotos, uploadTicket,
@@ -75,7 +76,7 @@ async function albumList(wedding, { forPlanner, functionIds }) {
     });
 }
 
-async function loadAlbum(weddingId, albumId) {
+export async function loadAlbum(weddingId, albumId) {
   if (!mongoose.isValidObjectId(albumId)) throw albumNotFound();
   const album = await Album.findOne({ _id: albumId, wedding: weddingId });
   if (!album) throw albumNotFound();
@@ -118,7 +119,7 @@ export async function finishUpload(photo, { forPlanner }) {
     await Photo.deleteOne({ _id: photo._id });
     throw badRequest(`Photos must be JPG, PNG, WebP or HEIC and at most ${MAX_PHOTO_BYTES / 1024 / 1024} MB.`);
   }
-  Object.assign(photo, { format: file.format, width: file.width, height: file.height, sizeBytes: file.bytes, version: file.version });
+  Object.assign(photo, { format: file.format, width: file.width, height: file.height, sizeBytes: file.bytes, version: file.version, phash: file.phash ?? undefined });
   photo.status = 'complete';
   photo.uploadedAt = new Date();
   await photo.save();
@@ -161,6 +162,7 @@ export async function deleteAlbum(req, res) {
   await deleteUploads(photos.map((p) => p.publicId));
   await Photo.deleteMany({ album: album._id });
   await PhotoDescription.deleteMany({ album: album._id });
+  await PhotoMoment.deleteMany({ album: album._id });
   await Album.deleteOne({ _id: album._id });
   res.status(204).end();
 }
@@ -193,6 +195,7 @@ export async function deletePhoto(req, res) {
   await deleteUploads([photo.publicId]);
   await Photo.deleteOne({ _id: photo._id });
   await PhotoDescription.deleteOne({ photo: photo._id });
+  await PhotoMoment.deleteMany({ photos: photo._id }); // the group changed, so its pick no longer applies
   await Album.updateOne({ _id: photo.album, coverPhoto: photo._id }, { $unset: { coverPhoto: 1 } });
   res.status(204).end();
 }

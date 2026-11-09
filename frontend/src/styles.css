@@ -667,3 +667,21 @@ textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3
 .photo-search p { margin: 0; }
 .photo-album { position: absolute; left: 6px; bottom: 6px; font-size: 10.5px; background: rgba(20, 12, 28, 0.72); color: #fff; padding: 2px 7px; border-radius: 999px; }
 .lb-caption { margin: 0; padding: 8px 18px 0; color: #efe6f3; font-size: 14px; text-align: center; }
+
+/* Photo moments */
+.album-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.album-bar p { margin: 0; }
+.moments > p { margin: 0 0 12px; }
+.moment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.moment { display: grid; grid-template-columns: minmax(160px, 260px) 1fr; gap: 18px; align-items: start; }
+.moment-best { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 1; background: var(--surface-2); }
+.moment-best img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.moment-best .photo-badge { background: var(--accent); color: #fff; }
+.moment-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.moment-main p { margin: 0; }
+.moment-how { font-weight: 600; }
+.moment-others { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.moment-others li { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.moment-others img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; }
+.moment-others li.is-hidden img { opacity: 0.4; filter: grayscale(0.6); }
+@media (max-width: 640px) { .moment { grid-template-columns: 1fr; } }
